@@ -35,6 +35,12 @@ $page_title = 'People';
       <input type="text" name="last_name" maxlength="80"></label>
     <label class="field f-grow"><span>Role</span>
       <input type="text" name="role_title" maxlength="120" placeholder="e.g. Implementation"></label>
+    <label class="field"><span>Access</span>
+      <select name="access_level">
+        <?php foreach (Auth::LEVELS as $k => $label): ?>
+          <option value="<?= e($k) ?>"><?= e($label) ?></option>
+        <?php endforeach; ?>
+      </select></label>
     <label class="field"><span>6-digit PIN</span>
       <input type="text" name="pin" maxlength="6" inputmode="numeric" pattern="[0-9]{6}"
              placeholder="481920" autocomplete="off"></label>
@@ -54,6 +60,7 @@ $page_title = 'People';
       <th>First name</th>
       <th>Last name</th>
       <th>Role</th>
+      <th>Access</th>
       <th class="ta-c">Sign-in</th>
       <th>Set a new PIN</th>
       <th class="ta-c">Active</th>
@@ -74,6 +81,16 @@ $page_title = 'People';
         <td>
           <input form="gridform" type="text" maxlength="120" name="rows[<?= $id ?>][role_title]"
                  value="<?= e($r['role_title'] ?? '') ?>" aria-label="Role">
+        </td>
+
+        <td>
+          <select form="gridform" name="rows[<?= $id ?>][access_level]"
+                  aria-label="Access level for <?= e($r['name']) ?>">
+            <?php foreach (Auth::LEVELS as $k => $label): ?>
+              <option value="<?= e($k) ?>"
+                <?= (($r['access_level'] ?? 'member') === $k) ? 'selected' : '' ?>><?= e($label) ?></option>
+            <?php endforeach; ?>
+          </select>
         </td>
 
         <td class="ta-c">
@@ -122,6 +139,12 @@ $page_title = 'People';
 
 <?php require APP_ROOT . '/templates/partials/savebar.php'; ?>
 
+<p class="table-note">
+  <strong>Team member</strong> sees everything and changes only the tasks assigned to them.
+  <strong>Onboarding Specialist</strong> can also add and edit practices, shape the task library,
+  and move any task forward on any practice. Neither can delete, deactivate or archive anything,
+  and neither can reach Products, Categories, People or the Archive.
+</p>
 <p class="table-note">
   People sign in with their PIN alone, so every PIN has to be different. If you type one that is
   already in use it will be refused. PINs are stored scrambled and cannot be read back, by you or

@@ -132,6 +132,7 @@ p { margin: .5rem 0; }
 }
 .mode-admin { background: var(--accent-soft); color: var(--accent-ink); }
 .mode-view  { background: var(--surface-3); color: var(--ink-2); }
+.mode-spec  { background: #EDE9FB; color: #5B4BA8; }
 
 /* ---------- Shell ---------- */
 
@@ -987,13 +988,14 @@ a.kpi:hover {
 
 .people-grid { table-layout: fixed; }
 .people-grid th, .people-grid td { vertical-align: middle; }
-.people-grid th:nth-child(1), .people-grid td:nth-child(1) { width: 20%; }
-.people-grid th:nth-child(2), .people-grid td:nth-child(2) { width: 20%; }
-.people-grid th:nth-child(3), .people-grid td:nth-child(3) { width: 20%; }
-.people-grid th:nth-child(4), .people-grid td:nth-child(4) { width: 6.5rem; }
-.people-grid th:nth-child(5), .people-grid td:nth-child(5) { width: 12rem; }
-.people-grid th:nth-child(6), .people-grid td:nth-child(6) { width: 4.5rem; }
-.people-grid th:nth-child(7), .people-grid td:nth-child(7) { width: 6rem; }
+.people-grid th:nth-child(1), .people-grid td:nth-child(1) { width: 15%; }
+.people-grid th:nth-child(2), .people-grid td:nth-child(2) { width: 15%; }
+.people-grid th:nth-child(3), .people-grid td:nth-child(3) { width: 15%; }
+.people-grid th:nth-child(4), .people-grid td:nth-child(4) { width: 12rem; }
+.people-grid th:nth-child(5), .people-grid td:nth-child(5) { width: 6.5rem; }
+.people-grid th:nth-child(6), .people-grid td:nth-child(6) { width: 11rem; }
+.people-grid th:nth-child(7), .people-grid td:nth-child(7) { width: 4.5rem; }
+.people-grid th:nth-child(8), .people-grid td:nth-child(8) { width: 6rem; }
 .people-grid input[type="text"] { font-size: .8125rem; padding: .35rem .5rem; }
 
 /* The dirty highlight has to work on a table row too, not just a
@@ -1004,7 +1006,7 @@ table.grid tbody tr.is-dirty:hover > td { background: #FDF1DC; }
 
 @media (max-width: 900px) {
   /* Below this the table scrolls sideways rather than squashing. */
-  .people-grid { min-width: 54rem; }
+  .people-grid { min-width: 64rem; }
 }
 
 

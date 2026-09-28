@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS assignees (
   pin_hash     VARCHAR(255) DEFAULT NULL,
   last_login   DATETIME DEFAULT NULL,
   role_title   VARCHAR(120) DEFAULT NULL,
+  -- 'member' or 'specialist'. The administrator is not a row here.
+  access_level VARCHAR(20) NOT NULL DEFAULT 'member',
   is_active    TINYINT(1) NOT NULL DEFAULT 1,
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

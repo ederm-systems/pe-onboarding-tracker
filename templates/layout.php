@@ -34,8 +34,10 @@
       <a href="<?= e(url('dashboard')) ?>" <?= ($template === 'dashboard') ? 'class="on" aria-current="page"' : '' ?>>Dashboard</a>
       <a href="<?= e(url('practices')) ?>" <?= ($template === 'practices' || str_starts_with($template, 'admin/practice')) ? 'class="on" aria-current="page"' : '' ?>>Practices</a>
       <a href="<?= e(url('tasks')) ?>" <?= ($template === 'tasks') ? 'class="on" aria-current="page"' : '' ?>><?= Auth::isMember() ? 'Tasks' : 'All tasks' ?></a>
-      <?php if ($is_admin): ?>
+      <?php if ($can_library): ?>
         <a href="<?= e(url('admin/tasks')) ?>" <?= ($template === 'admin/tasks') ? 'class="on"' : '' ?>>Task library</a>
+      <?php endif; ?>
+      <?php if ($is_admin): ?>
         <a href="<?= e(url('admin/products')) ?>" <?= ($template === 'admin/products') ? 'class="on"' : '' ?>>Products</a>
         <a href="<?= e(url('admin/categories')) ?>" <?= ($template === 'admin/categories') ? 'class="on"' : '' ?>>Categories</a>
         <a href="<?= e(url('admin/assignees')) ?>" <?= ($template === 'admin/assignees') ? 'class="on"' : '' ?>>People</a>
@@ -50,7 +52,10 @@
         <a class="btn btn-quiet btn-sm" href="<?= e(url('logout')) ?>">Sign out</a>
       <?php elseif (Auth::isMember()): ?>
         <span class="who"><?= e(Auth::displayName()) ?></span>
-        <span class="mode-pill mode-view" title="You can change the tasks assigned to you">Team</span>
+        <span class="mode-pill <?= Auth::isSpecialist() ? 'mode-spec' : 'mode-view' ?>"
+              title="<?= Auth::isSpecialist()
+                ? 'You can manage practices and the task library, and move any task forward'
+                : 'You can change the tasks assigned to you' ?>"><?= e(Auth::roleLabel()) ?></span>
         <a class="btn btn-quiet btn-sm" href="<?= e(url('logout')) ?>">Sign out</a>
       <?php else: ?>
         <a class="btn btn-quiet btn-sm" href="<?= e(url('login')) ?>">Sign in</a>

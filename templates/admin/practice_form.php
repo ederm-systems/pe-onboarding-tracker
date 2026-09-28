@@ -55,10 +55,12 @@ $page_title = $editing ? ('Edit ' . $practice['name']) : 'Add practice';
       <textarea name="notes" rows="3" placeholder="Context for the team. No patient information."><?= e($practice['notes'] ?? '') ?></textarea>
     </label>
 
-    <?php if ($editing): ?>
+    <?php /* Archiving is a form of removal, so it stays with the
+             administrator. */ ?>
+    <?php if ($editing && $can_delete): ?>
       <label class="check-line">
         <input type="checkbox" name="is_archived" value="1" <?= !empty($practice['is_archived']) ? 'checked' : '' ?>>
-        <span>Archived, hide from the dashboard</span>
+        <span>Archived, hide from every list</span>
       </label>
     <?php endif; ?>
   </section>

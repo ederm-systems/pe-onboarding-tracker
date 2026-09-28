@@ -6,14 +6,22 @@ declare(strict_types=1);
  *
  * Three states:
  *
- * Two kinds of user, and a locked door:
+ * Three kinds of user, and a locked door:
  *
- *   admin   The global administrator. Signs in with the PIN in
- *           config/config.php. May do anything.
- *   member  A person from the People screen. Signs in with their own
- *           6-digit PIN. Sees everything, and may change only the
- *           tasks assigned to them.
- *   guest   Not signed in. Sees the sign-in page and nothing else.
+ *   admin       The global administrator. Signs in with the PIN in
+ *               config/config.php. May do anything, including delete.
+ *   specialist  An Onboarding Specialist. Adds and edits practices,
+ *               shapes the task library, and moves any task forward on
+ *               any practice. Cannot delete, deactivate or archive, and
+ *               cannot reach Products, Categories, People or Archive.
+ *   member      A team member. Sees everything, and may change only the
+ *               tasks assigned to them.
+ *   guest       Not signed in. Sees the sign-in page and nothing else.
+ *
+ * Permissions are asked as capability questions (canManagePractices,
+ * canDelete and so on) rather than by comparing roles at each call
+ * site, so adding a role later means changing this file and nothing
+ * else.
  *
  * Every permission question is answered here, and every answer is
  * checked again in the request handler before anything is written.
@@ -21,9 +29,16 @@ declare(strict_types=1);
  */
 final class Auth
 {
-    public const ADMIN  = 'admin';
-    public const MEMBER = 'member';
-    public const GUEST  = 'guest';
+    public const ADMIN      = 'admin';
+    public const SPECIALIST = 'specialist';
+    public const MEMBER     = 'member';
+    public const GUEST      = 'guest';
+
+    /** Shown in the top bar and on the People screen. */
+    public const LEVELS = [
+        'member'     => 'Team member',
+        'specialist' => 'Onboarding Specialist',
+    ];
 
     private static array $config = [];
     private static ?array $memberCache = null;
@@ -45,10 +60,18 @@ final class Auth
         if (!empty($_SESSION['is_admin'])) {
             return self::ADMIN;
         }
-        if (!empty($_SESSION['member_id']) && self::member() !== null) {
-            return self::MEMBER;
+        $m = self::member();
+        if (!empty($_SESSION['member_id']) && $m !== null) {
+            return ($m['access_level'] ?? 'member') === 'specialist'
+                ? self::SPECIALIST
+                : self::MEMBER;
         }
         return self::GUEST;
+    }
+
+    public static function isSpecialist(): bool
+    {
+        return self::role() === self::SPECIALIST;
     }
 
     public static function isAdmin(): bool
@@ -56,9 +79,11 @@ final class Auth
         return self::role() === self::ADMIN;
     }
 
+    /** True for a team member or a specialist, both of whom are people. */
     public static function isMember(): bool
     {
-        return self::role() === self::MEMBER;
+        $r = self::role();
+        return $r === self::MEMBER || $r === self::SPECIALIST;
     }
 
     /** True for anyone signed in, admin or member. */
@@ -89,11 +114,22 @@ final class Auth
         return $row;
     }
 
-    /** The signed-in member's id, or null for admin and guests. */
+    /** The signed-in person's id, or null for the admin and guests. */
     public static function memberId(): ?int
     {
         $m = self::isMember() ? self::member() : null;
         return $m ? (int) $m['id'] : null;
+    }
+
+    /** Wording for the pill in the top bar. */
+    public static function roleLabel(): string
+    {
+        switch (self::role()) {
+            case self::ADMIN:      return 'Admin';
+            case self::SPECIALIST: return 'Specialist';
+            case self::MEMBER:     return 'Team';
+            default:               return '';
+        }
     }
 
     /** Name to show in the top bar. */
@@ -138,8 +174,34 @@ final class Auth
     // What they may do
     // -----------------------------------------------------------------
 
-    /** Administration: products, tasks, people, categories, archive. */
+    // -----------------------------------------------------------------
+    // Capabilities. Ask these, never compare roles at the call site.
+    // -----------------------------------------------------------------
+
+    /** Products, categories, people, archive: the administrator alone. */
     public static function canManage(): bool
+    {
+        return self::isAdmin();
+    }
+
+    /** Add and edit practices, and choose their products. */
+    public static function canManagePractices(): bool
+    {
+        return self::isAdmin() || self::isSpecialist();
+    }
+
+    /** Add, edit, reorder and reassign tasks in the library. */
+    public static function canManageLibrary(): bool
+    {
+        return self::isAdmin() || self::isSpecialist();
+    }
+
+    /**
+     * Destroy or hide: deleting anything, deactivating a task,
+     * archiving a practice. Reserved to the administrator, because
+     * deactivating one task removes it from every practice at once.
+     */
+    public static function canDelete(): bool
     {
         return self::isAdmin();
     }
@@ -152,7 +214,8 @@ final class Auth
      */
     public static function canEditTask(int $practiceId, int $taskId): bool
     {
-        if (self::isAdmin()) {
+        // A specialist runs onboarding, so any task on any practice.
+        if (self::isAdmin() || self::isSpecialist()) {
             return true;
         }
         $me = self::memberId();
@@ -344,6 +407,35 @@ final class Auth
         redirect(url('login', ['next' => $_SERVER['REQUEST_URI'] ?? '']));
     }
 
+    /** Refuse unless the given capability holds. */
+    public static function requireCan(string $capability, bool $json = false): void
+    {
+        $ok = false;
+        switch ($capability) {
+            case 'manage':           $ok = self::canManage();          break;
+            case 'manage_practices': $ok = self::canManagePractices(); break;
+            case 'manage_library':   $ok = self::canManageLibrary();   break;
+            case 'delete':           $ok = self::canDelete();          break;
+        }
+        if ($ok) {
+            return;
+        }
+        if ($json) {
+            json_out(['ok' => false, 'error' => 'You do not have access to that.'], 403);
+        }
+        if (self::isSignedIn()) {
+            http_response_code(403);
+            render('error', [
+                'title'   => 'Not available to you',
+                'message' => $capability === 'delete'
+                    ? 'Only the administrator can delete, deactivate or archive. Ask them if something needs removing.'
+                    : 'That screen is for the administrator. You can view everything, and change what your role allows.',
+            ]);
+            exit;
+        }
+        redirect(url('login', ['next' => $_SERVER['REQUEST_URI'] ?? '']));
+    }
+
     /** Administration only. */
     public static function requireAdmin(bool $json = false): void
     {
@@ -353,12 +445,12 @@ final class Auth
         if ($json) {
             json_out(['ok' => false, 'error' => 'Only the administrator can do that.'], 403);
         }
-        if (self::isMember()) {
+        if (self::isSignedIn()) {
             http_response_code(403);
             render('error', [
                 'title'   => 'Not available to you',
                 'message' => 'That screen is for the administrator. You can view everything, '
-                           . 'and change the tasks assigned to you.',
+                           . 'and change what your role allows.',
             ]);
             exit;
         }

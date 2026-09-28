@@ -17,6 +17,7 @@
  * @var ?array $my_work   the signed-in member's own open workload
  * @var bool  $is_admin
  * @var ?int  $member_id
+ * @var bool  $can_practices
  */
 $page_title = 'Dashboard';
 
@@ -42,7 +43,7 @@ $pctDone = (int) $totals['progress'];
   </div>
   <div class="page-actions">
     <a class="btn btn-quiet" href="<?= e(url('practices')) ?>">All practices</a>
-    <?php if ($is_admin): ?>
+    <?php if ($can_practices): ?>
       <a class="btn btn-primary" href="<?= e(url('admin/practice-form')) ?>">Add practice</a>
     <?php endif; ?>
   </div>

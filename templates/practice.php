@@ -17,6 +17,7 @@
  * @var array $activity
  * @var bool  $is_admin
  * @var ?int  $member_id
+ * @var bool  $can_practices
  */
 $page_title  = (string) $practice['name'];
 $practice_id = (int) $practice['id'];
@@ -42,7 +43,7 @@ $days        = days_until($practice['target_go_live_date'] ?? null);
       <?php endif; ?>
     </p>
   </div>
-  <?php if ($is_admin): ?>
+  <?php if ($can_practices): ?>
     <div class="page-actions">
       <a class="btn btn-quiet" href="<?= e(url('admin/practice-form', ['id' => $practice_id])) ?>">Edit practice &amp; products</a>
     </div>
@@ -183,7 +184,7 @@ require APP_ROOT . '/templates/partials/filter_bar.php';
         Nothing matches those filters.
       <?php elseif (!$products): ?>
         This practice has no products selected.
-        <?php if ($is_admin): ?>
+        <?php if ($can_practices): ?>
           <a href="<?= e(url('admin/practice-form', ['id' => $practice_id])) ?>">Choose its products</a> and the task list will fill in automatically.
         <?php endif; ?>
       <?php else: ?>

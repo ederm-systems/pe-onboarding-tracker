@@ -10,6 +10,8 @@
  * @var array $filters
  * @var array $products
  * @var bool  $is_admin
+ * @var bool  $can_practices
+ * @var bool  $can_delete
  */
 $page_title = 'Practices';
 
@@ -42,7 +44,7 @@ foreach ($rows as $r) {
       <?php endif; ?>
     </p>
   </div>
-  <?php if ($is_admin): ?>
+  <?php if ($can_practices): ?>
     <div class="page-actions">
       <a class="btn btn-primary" href="<?= e(url('admin/practice-form')) ?>">Add practice</a>
     </div>
@@ -80,7 +82,7 @@ require APP_ROOT . '/templates/partials/filter_bar.php';
       <?php if ($filters['q'] || $filters['product_id'] || $filters['state']
                 || $filters['only_blocked'] || $filters['only_overdue'] || $filters['only_attention']): ?>
         Try clearing the filters above.
-      <?php elseif ($is_admin): ?>
+      <?php elseif ($can_practices): ?>
         Add your first practice to get started.
       <?php else: ?>
         No practices have been set up yet.
@@ -100,7 +102,7 @@ require APP_ROOT . '/templates/partials/filter_bar.php';
       <th class="c-num">Blocked</th>
       <th class="c-num">Overdue</th>
       <th class="c-golive">Target go-live</th>
-      <?php if ($is_admin): ?><th class="c-act">Actions</th><?php endif; ?>
+      <?php if ($can_practices): ?><th class="c-act">Actions</th><?php endif; ?>
     </tr>
   </thead>
   <tbody>
@@ -161,10 +163,10 @@ require APP_ROOT . '/templates/partials/filter_bar.php';
         <?php endif; ?>
       </td>
 
-      <?php if ($is_admin): ?>
+      <?php if ($can_practices): ?>
         <td class="c-act">
           <a class="btn btn-quiet btn-xs" href="<?= e(url('admin/practice-form', ['id' => (int) $r['id']])) ?>">Edit</a>
-          <?php if (empty($r['is_archived'])): ?>
+          <?php if ($can_delete && empty($r['is_archived'])): ?>
             <form method="post" action="<?= e(url('practice-delete')) ?>" class="inline-form"
                   data-confirm="Archive <?= e($r['name']) ?>? It disappears from the list but nothing is deleted.">
               <?= Csrf::field() ?>

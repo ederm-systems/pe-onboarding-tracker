@@ -13,6 +13,7 @@
  * @var array  $assignees
  * @var array  $rows
  * @var bool   $include_inactive
+ * @var bool   $can_delete
  */
 $page_title = 'Task library';
 ?>
@@ -176,33 +177,40 @@ $page_title = 'Task library';
                  value="<?= e($r['description'] ?? '') ?>"></label>
 
         <label class="cell ta-c"><span class="cell-lab">Active</span>
-          <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_active]" value="0">
-          <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_active]" value="1"
-                 <?= !empty($r['is_active']) ? 'checked' : '' ?>></label>
+          <?php if ($can_delete): ?>
+            <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_active]" value="0">
+            <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_active]" value="1"
+                   <?= !empty($r['is_active']) ? 'checked' : '' ?>>
+          <?php else: ?>
+            <span class="badge <?= !empty($r['is_active']) ? 'st-completed' : 'st-not-started' ?>"
+                  title="Only the administrator can change this"><?= !empty($r['is_active']) ? 'Yes' : 'No' ?></span>
+          <?php endif; ?></label>
       </div>
 
       <span class="edit-row-side">
-        <?php if (!empty($r['is_active'])): ?>
+        <?php if ($can_delete): ?>
+          <?php if (!empty($r['is_active'])): ?>
+            <form method="post" action="<?= e(url('task-delete')) ?>" class="inline-form" data-leaves-page
+                  data-confirm="Deactivate &quot;<?= e($r['name']) ?>&quot;? It disappears from every practice, and any status already recorded is kept.">
+              <?= Csrf::field() ?>
+              <input type="hidden" name="id" value="<?= $id ?>">
+              <button type="submit" class="btn btn-quiet btn-xs">Deactivate</button>
+            </form>
+          <?php else: ?>
+            <form method="post" action="<?= e(url('task-reactivate')) ?>" class="inline-form" data-leaves-page>
+              <?= Csrf::field() ?>
+              <input type="hidden" name="id" value="<?= $id ?>">
+              <button type="submit" class="btn btn-quiet btn-xs">Reactivate</button>
+            </form>
+          <?php endif; ?>
           <form method="post" action="<?= e(url('task-delete')) ?>" class="inline-form" data-leaves-page
-                data-confirm="Deactivate &quot;<?= e($r['name']) ?>&quot;? It disappears from every practice, and any status already recorded is kept.">
+                data-confirm="Permanently delete &quot;<?= e($r['name']) ?>&quot; and the status recorded against it for every practice? This cannot be undone.">
             <?= Csrf::field() ?>
             <input type="hidden" name="id" value="<?= $id ?>">
-            <button type="submit" class="btn btn-quiet btn-xs">Deactivate</button>
-          </form>
-        <?php else: ?>
-          <form method="post" action="<?= e(url('task-reactivate')) ?>" class="inline-form" data-leaves-page>
-            <?= Csrf::field() ?>
-            <input type="hidden" name="id" value="<?= $id ?>">
-            <button type="submit" class="btn btn-quiet btn-xs">Reactivate</button>
+            <input type="hidden" name="hard" value="1">
+            <button type="submit" class="btn btn-danger btn-xs">Delete</button>
           </form>
         <?php endif; ?>
-        <form method="post" action="<?= e(url('task-delete')) ?>" class="inline-form" data-leaves-page
-              data-confirm="Permanently delete &quot;<?= e($r['name']) ?>&quot; and the status recorded against it for every practice? This cannot be undone.">
-          <?= Csrf::field() ?>
-          <input type="hidden" name="id" value="<?= $id ?>">
-          <input type="hidden" name="hard" value="1">
-          <button type="submit" class="btn btn-danger btn-xs">Delete</button>
-        </form>
       </span>
     </div>
   <?php endforeach; ?>
@@ -217,8 +225,13 @@ $page_title = 'Task library';
 </p>
 
 <p class="table-note">
-  Deactivate rather than delete when a task is simply no longer part of the process. Deleting
-  also removes the status, assignee, due date, and notes recorded against it for every practice.
+  <?php if ($can_delete): ?>
+    Deactivate rather than delete when a task is simply no longer part of the process. Deleting
+    also removes the status, assignee, due date, and notes recorded against it for every practice.
+  <?php else: ?>
+    You can add, edit, reorder and reassign tasks here. Removing one, or switching it off, is the
+    administrator's to do, because it affects every practice at once.
+  <?php endif; ?>
 </p>
 
 <?php endif; ?>

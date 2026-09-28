@@ -21,8 +21,11 @@ function render(string $template, array $vars = []): void
     global $config;
 
     $vars['config']   = $config;
-    $vars['is_admin']  = Auth::isAdmin();
-    $vars['member_id'] = Auth::memberId();
+    $vars['is_admin']      = Auth::isAdmin();
+    $vars['member_id']     = Auth::memberId();
+    $vars['can_practices'] = Auth::canManagePractices();
+    $vars['can_library']   = Auth::canManageLibrary();
+    $vars['can_delete']    = Auth::canDelete();
     $vars['flashes']  = take_flashes();
     $vars['template'] = $template;
 
@@ -352,9 +355,21 @@ if ($method === 'POST') {
     // Individual handlers narrow that further.
     Auth::requireLogin();
 
-    // Only two writes are open to members; everything else is admin.
-    $memberWritable = ['api/task-save', 'bulk-save'];
-    if (!in_array($route, $memberWritable, true)) {
+    // Which writes each role may reach. Anything not listed is the
+    // administrator's alone, so a new route is locked down by default
+    // rather than accidentally open.
+    $openToAnyone = ['api/task-save', 'bulk-save', 'practice-notes-save'];
+
+    $needsPractices = ['practice-save'];
+    $needsLibrary   = ['task-save', 'tasks-save-all', 'task-move', 'tasks-renumber'];
+
+    if (in_array($route, $openToAnyone, true)) {
+        // Per-task permission is checked inside each handler.
+    } elseif (in_array($route, $needsPractices, true)) {
+        Auth::requireCan('manage_practices');
+    } elseif (in_array($route, $needsLibrary, true)) {
+        Auth::requireCan('manage_library');
+    } else {
         Auth::requireAdmin();
     }
 
@@ -376,7 +391,11 @@ if ($method === 'POST') {
                                             ? post_str('onboarding_state') : 'active',
                 'target_go_live_date' => post_date_or_null('target_go_live_date'),
                 'notes'               => post_str('notes') ?: null,
-                'is_archived'         => !empty($_POST['is_archived']) ? 1 : 0,
+                // Archiving is a form of removal, so it stays with the
+                // administrator. A specialist's post cannot set it.
+                'is_archived'         => Auth::canDelete()
+                                            ? (!empty($_POST['is_archived']) ? 1 : 0)
+                                            : (int) (Repo::practice($id)['is_archived'] ?? 0),
             ];
 
             if ($id > 0) {
@@ -549,12 +568,21 @@ if ($method === 'POST') {
         }
 
         case 'assignees-save-all': {
+            $rows = (array) ($_POST['rows'] ?? []);
+            foreach ($rows as $id => $vals) {
+                if (isset($vals['access_level'])
+                    && !array_key_exists((string) $vals['access_level'], Auth::LEVELS)) {
+                    unset($rows[$id]['access_level']);
+                }
+            }
+
             $r = save_grid('assignees', 'assignee', [
-                'first_name' => 'str',
-                'last_name'  => 'strnull',
-                'role_title' => 'strnull',
-                'is_active'  => 'bool',
-            ], (array) ($_POST['rows'] ?? []), ['first_name']);
+                'first_name'   => 'str',
+                'last_name'    => 'strnull',
+                'role_title'   => 'strnull',
+                'access_level' => 'str',
+                'is_active'    => 'bool',
+            ], $rows, ['first_name']);
 
             // `name` is the denormalised display name, so keep it in step.
             Database::run(
@@ -590,13 +618,18 @@ if ($method === 'POST') {
                 }
             }
 
-            $r = save_grid('tasks', 'task', [
+            // A specialist edits the library but cannot switch tasks
+            // off, so is_active is simply not one of their fields.
+            $fields = [
                 'name'                => 'str',
                 'category_id'         => 'int',
                 'default_assignee_id' => 'intnull',
                 'description'         => 'strnull',
-                'is_active'           => 'bool',
-            ], $rows);
+            ];
+            if (Auth::canDelete()) {
+                $fields['is_active'] = 'bool';
+            }
+            $r = save_grid('tasks', 'task', $fields, $rows);
 
             // Persist a drag-and-drop reorder, if there was one. The order
             // arrives as task ids; anything not listed keeps its place at
@@ -722,14 +755,17 @@ if ($method === 'POST') {
             }
 
             Database::run(
-                'INSERT INTO assignees (first_name, last_name, name, pin_hash, role_title, is_active)
-                 VALUES (:first_name, :last_name, :name, :pin_hash, :role_title, 1)',
+                'INSERT INTO assignees
+                    (first_name, last_name, name, pin_hash, role_title, access_level, is_active)
+                 VALUES (:first_name, :last_name, :name, :pin_hash, :role_title, :access_level, 1)',
                 [
-                    'first_name' => $first,
-                    'last_name'  => $last,
-                    'name'       => $full,
-                    'pin_hash'   => $pin !== '' ? password_hash($pin, PASSWORD_DEFAULT) : null,
-                    'role_title' => post_str('role_title') ?: null,
+                    'first_name'   => $first,
+                    'last_name'    => $last,
+                    'name'         => $full,
+                    'pin_hash'     => $pin !== '' ? password_hash($pin, PASSWORD_DEFAULT) : null,
+                    'role_title'   => post_str('role_title') ?: null,
+                    'access_level' => array_key_exists(post_str('access_level'), Auth::LEVELS)
+                                        ? post_str('access_level') : 'member',
                 ]
             );
 
@@ -801,6 +837,11 @@ if ($method === 'POST') {
         // ---- Global tasks ---------------------------------------------
         case 'task-save': {
             $id         = (int) ($_POST['id'] ?? 0);
+            // Editing a task is allowed; switching it off is not.
+            if (!Auth::canDelete() && isset($_POST['is_active']) && empty($_POST['is_active'])) {
+                flash('Only the administrator can deactivate a task.', 'error');
+                redirect(url('admin/tasks', ['product_id' => (int) ($_POST['product_id'] ?? 0) ?: null]));
+            }
             $productId  = (int) ($_POST['product_id'] ?? 0);
             $categoryId = (int) ($_POST['category_id'] ?? 0);
             $name       = post_str('name');
@@ -1297,7 +1338,7 @@ switch ($route) {
         redirect(url('practices', ['archived' => 1]));
 
     case 'admin/practice-form': {
-        Auth::requireAdmin();
+        Auth::requireCan('manage_practices');
         $id       = (int) ($_GET['id'] ?? 0);
         $practice = $id > 0 ? Repo::practice($id) : null;
         if ($id > 0 && !$practice) {
@@ -1327,7 +1368,7 @@ switch ($route) {
         break;
 
     case 'admin/tasks': {
-        Auth::requireAdmin();
+        Auth::requireCan('manage_library');
         $productId       = (int) ($_GET['product_id'] ?? 0);
         $includeInactive = !empty($_GET['inactive']);
         $products        = Repo::products(false);
