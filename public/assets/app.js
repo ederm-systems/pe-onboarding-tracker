@@ -283,6 +283,10 @@
         .map(function (r) { return r.getAttribute('data-row'); });
     }
     var initialOrder = rowIds();
+    // The whole child sequence, category banners included, so Reset can
+    // put everything back exactly as it was. Restoring only the task
+    // rows would leave the banners stranded at the top.
+    var initialChildren = Array.prototype.slice.call(grid.children);
 
     function refreshGrid() {
       var dirtyRows = {};
@@ -340,10 +344,7 @@
         }
       });
       // Put the rows back where they started as well.
-      initialOrder.forEach(function (id) {
-        var row = grid.querySelector('[data-row="' + id + '"]');
-        if (row) grid.appendChild(row);
-      });
+      initialChildren.forEach(function (el) { grid.appendChild(el); });
       refreshGrid();
     });
 

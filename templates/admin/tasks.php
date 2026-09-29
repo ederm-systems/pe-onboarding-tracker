@@ -109,23 +109,49 @@ $page_title = 'Task library';
   is done with its Category dropdown, not by dragging.
 </p>
 
-<div class="edit-rows cols-task" data-grid data-sortable>
-  <div class="edit-head">
-    <span>Move</span><span>Task</span><span>Category</span><span>Default assignee</span><span>Description</span><span class="ta-c">Active</span>
-  </div>
-
+<?php
+  /**
+   * A real table, so a heading cannot drift out of line with the cells
+   * beneath it. The editable cells belong to #gridform through the HTML
+   * `form` attribute, which is what lets one Save button commit the
+   * whole table without a form illegally wrapping the cells.
+   *
+   * data-grid and data-sortable sit on the tbody rather than the table,
+   * so the reorder and reset handlers move rows within their proper
+   * parent.
+   */
+  $cols = $can_delete ? 7 : 6;
+?>
+<div class="table-scroll">
+<table class="grid lib-grid">
+  <thead>
+    <tr>
+      <th class="c-move">Move</th>
+      <th>Task</th>
+      <th>Category</th>
+      <th>Default assignee</th>
+      <th>Description</th>
+      <th class="ta-c">Active</th>
+      <?php if ($can_delete): ?><th class="c-act"></th><?php endif; ?>
+    </tr>
+  </thead>
+  <tbody data-grid data-sortable>
   <?php $lastCat = null; foreach ($rows as $r): $id = (int) $r['id'];
-      // A divider each time the category changes. Not draggable, so the
-      // order the drag handler reads stays a plain list of task rows.
+      // A banner row each time the category changes. It carries no
+      // data-row, so the drag handler and the arrows read the task rows
+      // as a plain list and never try to move a banner.
       if ($lastCat !== (int) $r['category_id']):
           $lastCat = (int) $r['category_id']; ?>
-        <div class="cat-divider" style="--cat: <?= e($r['category_color'] ?: '#94A3B8') ?>">
-          <span class="cat-swatch"></span><?= e($r['category_name']) ?>
-        </div>
+        <tr class="cat-row" style="--cat: <?= e($r['category_color'] ?: '#94A3B8') ?>">
+          <td colspan="<?= $cols ?>">
+            <span class="cat-swatch"></span><?= e($r['category_name']) ?>
+          </td>
+        </tr>
       <?php endif; ?>
-    <div class="edit-line <?= empty($r['is_active']) ? 'is-off' : '' ?>" data-row="<?= $id ?>"
-         style="--cat: <?= e($r['category_color'] ?: '#94A3B8') ?>">
-      <span class="cell cell-move">
+    <tr data-row="<?= $id ?>" class="<?= empty($r['is_active']) ? 'row-muted' : '' ?>"
+        style="--cat: <?= e($r['category_color'] ?: '#94A3B8') ?>">
+
+      <td class="c-move">
         <span class="drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
 
         <?php /* The arrows are the keyboard and touch path, and the fallback
@@ -145,50 +171,54 @@ $page_title = 'Task library';
           <button type="submit" class="btn btn-icon" data-move="down"
                   title="Move down" aria-label="Move <?= e($r['name']) ?> down">↓</button>
         </form>
-      </span>
+      </td>
 
-      <div class="edit-row edit-row-task">
-        <label class="cell"><span class="cell-lab">Task</span>
-          <input form="gridform" type="text" maxlength="200" name="rows[<?= $id ?>][name]"
-                 value="<?= e($r['name']) ?>"></label>
+      <td>
+        <input form="gridform" type="text" maxlength="200" name="rows[<?= $id ?>][name]"
+               value="<?= e($r['name']) ?>" aria-label="Task name">
+      </td>
 
-        <label class="cell"><span class="cell-lab">Category</span>
-          <select form="gridform" name="rows[<?= $id ?>][category_id]">
-            <?php foreach ($categories as $c): ?>
-              <option value="<?= (int) $c['id'] ?>" <?= ((int) $r['category_id'] === (int) $c['id']) ? 'selected' : '' ?>>
-                <?= e($c['name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select></label>
+      <td>
+        <select form="gridform" name="rows[<?= $id ?>][category_id]" aria-label="Category">
+          <?php foreach ($categories as $c): ?>
+            <option value="<?= (int) $c['id'] ?>" <?= ((int) $r['category_id'] === (int) $c['id']) ? 'selected' : '' ?>>
+              <?= e($c['name']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </td>
 
-        <label class="cell"><span class="cell-lab">Default assignee</span>
-          <select form="gridform" name="rows[<?= $id ?>][default_assignee_id]">
-            <option value="">Nobody by default</option>
-            <?php foreach ($assignees as $a): ?>
-              <option value="<?= (int) $a['id'] ?>"
-                <?= ((int) ($r['default_assignee_id'] ?? 0) === (int) $a['id']) ? 'selected' : '' ?>>
-                <?= e($a['name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select></label>
+      <td>
+        <select form="gridform" name="rows[<?= $id ?>][default_assignee_id]" aria-label="Default assignee">
+          <option value="">Nobody by default</option>
+          <?php foreach ($assignees as $a): ?>
+            <option value="<?= (int) $a['id'] ?>"
+              <?= ((int) ($r['default_assignee_id'] ?? 0) === (int) $a['id']) ? 'selected' : '' ?>>
+              <?= e($a['name']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </td>
 
-        <label class="cell"><span class="cell-lab">Description</span>
-          <input form="gridform" type="text" maxlength="500" name="rows[<?= $id ?>][description]"
-                 value="<?= e($r['description'] ?? '') ?>"></label>
+      <td>
+        <input form="gridform" type="text" maxlength="500" name="rows[<?= $id ?>][description]"
+               value="<?= e($r['description'] ?? '') ?>" aria-label="Description">
+      </td>
 
-        <label class="cell ta-c"><span class="cell-lab">Active</span>
-          <?php if ($can_delete): ?>
-            <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_active]" value="0">
-            <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_active]" value="1"
-                   <?= !empty($r['is_active']) ? 'checked' : '' ?>>
-          <?php else: ?>
-            <span class="badge <?= !empty($r['is_active']) ? 'st-completed' : 'st-not-started' ?>"
-                  title="Only the administrator can change this"><?= !empty($r['is_active']) ? 'Yes' : 'No' ?></span>
-          <?php endif; ?></label>
-      </div>
-
-      <span class="edit-row-side">
+      <td class="ta-c">
         <?php if ($can_delete): ?>
+          <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_active]" value="0">
+          <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_active]" value="1"
+                 <?= !empty($r['is_active']) ? 'checked' : '' ?> aria-label="Active">
+        <?php else: ?>
+          <span class="badge <?= !empty($r['is_active']) ? 'st-completed' : 'st-not-started' ?>"
+                title="Only the administrator can change this"><?= !empty($r['is_active']) ? 'Yes' : 'No' ?></span>
+        <?php endif; ?>
+      </td>
+
+      <?php if ($can_delete): ?>
+      <td class="c-act">
+        <span class="row-act">
           <?php if (!empty($r['is_active'])): ?>
             <form method="post" action="<?= e(url('task-delete')) ?>" class="inline-form" data-leaves-page
                   data-confirm="Deactivate &quot;<?= e($r['name']) ?>&quot;? It disappears from every practice, and any status already recorded is kept.">
@@ -210,10 +240,13 @@ $page_title = 'Task library';
             <input type="hidden" name="hard" value="1">
             <button type="submit" class="btn btn-danger btn-xs">Delete</button>
           </form>
-        <?php endif; ?>
-      </span>
-    </div>
+        </span>
+      </td>
+      <?php endif; ?>
+    </tr>
   <?php endforeach; ?>
+  </tbody>
+</table>
 </div>
 
 <?php require APP_ROOT . '/templates/partials/savebar.php'; ?>

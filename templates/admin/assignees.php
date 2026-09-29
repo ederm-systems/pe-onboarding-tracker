@@ -54,7 +54,7 @@ $page_title = 'People';
 <form method="post" action="<?= e(url('assignees-save-all')) ?>" id="gridform"><?= Csrf::field() ?></form>
 
 <div class="table-scroll">
-<table class="grid people-grid" data-grid>
+<table class="grid people-grid">
   <thead>
     <tr>
       <th>First name</th>
@@ -67,7 +67,9 @@ $page_title = 'People';
       <th class="c-act"></th>
     </tr>
   </thead>
-  <tbody>
+  <?php /* data-grid sits on the tbody, not the table, so the Reset
+           button puts rows back inside their proper parent. */ ?>
+  <tbody data-grid>
     <?php foreach ($rows as $r): $id = (int) $r['id']; ?>
       <tr data-row="<?= $id ?>" class="<?= empty($r['is_active']) ? 'row-muted' : '' ?>">
         <td>

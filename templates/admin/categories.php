@@ -38,48 +38,58 @@ $page_title = 'Categories';
 
 <form method="post" action="<?= e(url('categories-save-all')) ?>" id="gridform"><?= Csrf::field() ?></form>
 
-<div class="edit-rows cols-category" data-grid>
-  <div class="edit-head">
-    <span>Order</span><span>Name</span><span class="ta-c">Practice's own</span><span class="ta-c">Tasks</span><?php if ($can_delete): ?><span class="ta-c">Active</span><?php endif; ?>
-  </div>
-
-  <?php foreach ($rows as $r): $id = (int) $r['id']; ?>
-    <div class="edit-line <?= empty($r['is_active']) ? 'is-off' : '' ?>" data-row="<?= $id ?>">
-      <div class="edit-row">
-        <label class="cell"><span class="cell-lab">Order</span>
-          <input form="gridform" type="number" step="10" name="rows[<?= $id ?>][sort_order]"
-                 value="<?= (int) $r['sort_order'] ?>"></label>
-
-        <label class="cell"><span class="cell-lab">Name</span>
-          <input form="gridform" type="text" maxlength="120" name="rows[<?= $id ?>][name]"
-                 value="<?= e($r['name']) ?>"></label>
-
-        <label class="cell ta-c"><span class="cell-lab">Practice's own</span>
-          <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_customer]" value="0">
-          <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_customer]" value="1"
-                 <?= !empty($r['is_customer']) ? 'checked' : '' ?>
-                 title="Open tasks here are listed on the practice's own page"></label>
-
-        <span class="cell ta-c"><span class="cell-lab">Tasks</span><?= (int) $r['task_count'] ?></span>
-
-        <?php if ($can_delete): ?>
-          <label class="cell ta-c"><span class="cell-lab">Active</span>
-            <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_active]" value="0">
-            <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_active]" value="1"
-                   <?= !empty($r['is_active']) ? 'checked' : '' ?>></label>
-        <?php endif; ?>
-      </div>
-
+<div class="table-scroll">
+<table class="grid cat-grid">
+  <thead>
+    <tr>
+      <th class="c-order">Order</th>
+      <th>Name</th>
+      <th class="ta-c">Practice's own</th>
+      <th class="ta-c">Tasks</th>
       <?php if ($can_delete): ?>
-      <form method="post" action="<?= e(url('category-delete')) ?>" class="edit-row-side"
-            data-confirm="Remove <?= e($r['name']) ?>? If tasks use it, it will be deactivated instead of deleted.">
-        <?= Csrf::field() ?>
-        <input type="hidden" name="id" value="<?= $id ?>">
-        <button type="submit" class="btn btn-danger btn-xs">Remove</button>
-      </form>
+        <th class="ta-c">Active</th>
+        <th class="c-act"></th>
       <?php endif; ?>
-    </div>
+    </tr>
+  </thead>
+  <tbody data-grid>
+  <?php foreach ($rows as $r): $id = (int) $r['id']; ?>
+    <tr data-row="<?= $id ?>" class="<?= empty($r['is_active']) ? 'row-muted' : '' ?>">
+      <td class="c-order">
+        <input form="gridform" type="number" step="10" name="rows[<?= $id ?>][sort_order]"
+               value="<?= (int) $r['sort_order'] ?>" aria-label="Order">
+      </td>
+      <td>
+        <input form="gridform" type="text" maxlength="120" name="rows[<?= $id ?>][name]"
+               value="<?= e($r['name']) ?>" aria-label="Name">
+      </td>
+      <td class="ta-c">
+        <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_customer]" value="0">
+        <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_customer]" value="1"
+               <?= !empty($r['is_customer']) ? 'checked' : '' ?>
+               aria-label="Practice's own"
+               title="Open tasks here are listed on the practice's own page">
+      </td>
+      <td class="ta-c"><?= (int) $r['task_count'] ?></td>
+      <?php if ($can_delete): ?>
+        <td class="ta-c">
+          <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_active]" value="0">
+          <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_active]" value="1"
+                 <?= !empty($r['is_active']) ? 'checked' : '' ?> aria-label="Active">
+        </td>
+        <td class="c-act">
+          <form method="post" action="<?= e(url('category-delete')) ?>" class="inline-form row-act"
+                data-confirm="Remove <?= e($r['name']) ?>? If tasks use it, it will be deactivated instead of deleted.">
+            <?= Csrf::field() ?>
+            <input type="hidden" name="id" value="<?= $id ?>">
+            <button type="submit" class="btn btn-danger btn-xs">Remove</button>
+          </form>
+        </td>
+      <?php endif; ?>
+    </tr>
   <?php endforeach; ?>
+  </tbody>
+</table>
 </div>
 
 <?php require APP_ROOT . '/templates/partials/savebar.php'; ?>
