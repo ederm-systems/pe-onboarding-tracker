@@ -1117,13 +1117,18 @@ table.grid tbody tr.is-dirty:hover > td { background: #FDF1DC; }
 
 /* ---------- The shareable link, on the practice page ---------- */
 
-.share-card-admin { border-left: 3px solid var(--accent); }
+.share-card-admin { border-left: 3px solid var(--accent); margin-top: 2rem; }
 .share-link { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .25rem 0 .5rem; }
 .share-link input {
   flex: 1 1 18rem; min-width: 0; font-size: .8125rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: var(--surface-2);
 }
+.btn-open {
+  padding: 0 .55rem; min-width: 2.375rem;
+  font-size: 1rem; line-height: 1; color: var(--ink-2);
+}
+.btn-open:hover { color: var(--accent-ink); }
 
 /* ==========================================================
    The practice's own page, opened with a link

@@ -378,7 +378,10 @@ require APP_ROOT . '/templates/partials/filter_bar.php';
         <input type="text" readonly value="<?= e($shareUrl) ?>" id="share-url"
                onclick="this.select()" aria-label="Shareable link for <?= e($practice['name']) ?>">
         <button type="button" class="btn btn-primary btn-sm" data-copy="#share-url">Copy</button>
-        <a class="btn btn-quiet btn-sm" href="<?= e($shareUrl) ?>" target="_blank" rel="noopener">Preview</a>
+        <a class="btn btn-quiet btn-sm btn-open" href="<?= e($shareUrl) ?>"
+           target="_blank" rel="noopener"
+           title="Open the practice's view in a new tab"
+           aria-label="Open the practice's view in a new tab">&#8599;</a>
       </div>
       <p class="table-note">
         Anyone with this link can see it, so treat it as you would a shared document.

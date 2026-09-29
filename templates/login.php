@@ -33,8 +33,11 @@ $page_title = 'Sign in';
 
       <div class="auth-pin">
         <label for="pin" class="sr-only">PIN</label>
+        <?php /* No maxlength of 6: the administrator PIN may be a
+                 longer passphrase, and capping the field would stop it
+                 being typed at all. */ ?>
         <input id="pin" type="password" name="pin" required autofocus
-               class="pin-input" inputmode="numeric" maxlength="6"
+               class="pin-input" inputmode="numeric" maxlength="64"
                autocomplete="current-password" spellcheck="false"
                placeholder="••••••">
         <button type="button" class="pin-peek" data-pin-peek

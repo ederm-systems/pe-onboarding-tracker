@@ -564,6 +564,26 @@
   // Sign in: let people check what they typed
   // ---------------------------------------------------------------
 
+  // A 6-digit PIN signs in on the last digit, the way a phone lock
+  // does. Anything longer is the administrator's passphrase, so that
+  // waits for the button rather than submitting half-typed.
+  var pinField = document.getElementById('pin');
+  if (pinField && pinField.form) {
+    var submitted = false;
+    pinField.addEventListener('input', function () {
+      if (submitted) { return; }
+      if (/^[0-9]{6}$/.test(pinField.value)) {
+        submitted = true;
+        var btn = pinField.form.querySelector('button[type="submit"]');
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Signing in...';
+        }
+        pinField.form.submit();
+      }
+    });
+  }
+
   var pinPeek = document.querySelector('[data-pin-peek]');
   if (pinPeek) {
     pinPeek.addEventListener('click', function () {
