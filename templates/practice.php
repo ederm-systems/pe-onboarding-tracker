@@ -19,6 +19,7 @@
  * @var bool  $is_admin
  * @var ?int  $member_id
  * @var bool  $can_practices
+ * @var bool  $can_edit_any
  */
 $page_title  = (string) $practice['name'];
 $practice_id = (int) $practice['id'];
@@ -204,6 +205,81 @@ $days        = days_until($practice['target_go_live_date'] ?? null);
     <p class="table-note">Open tasks only. Anything unassigned is worth handing out.</p>
   </section>
 </div>
+
+<?php
+  // The same list the practice sees on its own page. They cannot tick
+  // anything off there, so this is where it gets done once they
+  // confirm, and it disappears from their page immediately.
+  $waitingOnPractice = array_values(array_filter(
+      $all_rows,
+      static fn($r) => !empty($r['is_customer'])
+          && !in_array($r['status'], ['completed', 'not_applicable'], true)
+  ));
+  usort($waitingOnPractice, static function ($a, $b) {
+      if (!empty($a['is_overdue']) !== !empty($b['is_overdue'])) {
+          return !empty($a['is_overdue']) ? -1 : 1;
+      }
+      return strcmp((string) ($a['due_date'] ?? '9999'), (string) ($b['due_date'] ?? '9999'));
+  });
+  $lateOnPractice = 0;
+  foreach ($waitingOnPractice as $w) {
+      if (!empty($w['is_overdue'])) { $lateOnPractice++; }
+  }
+?>
+
+<?php if ($waitingOnPractice): ?>
+  <section class="card waiting-card <?= $lateOnPractice > 0 ? 'is-urgent' : '' ?>">
+    <h2 class="card-h">
+      Waiting on the practice
+      <span class="share-count"><?= count($waitingOnPractice) ?></span>
+    </h2>
+    <p class="muted">
+      These are the only tasks shown on the practice's own page, under "What we need from you".
+      They cannot tick them off themselves, so mark them done here once they confirm and the
+      item disappears from their page straight away.
+      <?php if ($lateOnPractice > 0): ?>
+        <span class="v-alert"><?= $lateOnPractice ?> past the date we set.</span>
+      <?php endif; ?>
+    </p>
+
+    <ul class="waiting-list">
+      <?php foreach ($waitingOnPractice as $w):
+          $wid = (int) $w['task_id'];
+          $canTick = $can_edit_any
+              || ($member_id !== null && (int) ($w['assignee_id'] ?? 0) === (int) $member_id);
+      ?>
+        <li class="<?= !empty($w['is_overdue']) ? 'is-overdue' : '' ?>">
+          <span class="waiting-main">
+            <span class="waiting-name"><?= e($w['task_name']) ?></span>
+            <span class="waiting-meta">
+              <span class="chip">
+                <?php if (!empty($w['product_color'])): ?>
+                  <span class="chip-dot" style="background: <?= e($w['product_color']) ?>"></span>
+                <?php endif; ?>
+                <?= e($w['product_name']) ?>
+              </span>
+              <?php if (!empty($w['due_date'])): ?>
+                <span class="<?= !empty($w['is_overdue']) ? 'v-alert' : 'muted' ?>">
+                  <?= !empty($w['is_overdue']) ? 'was due ' : 'due ' ?><?= e(fmt_date($w['due_date'])) ?>
+                </span>
+              <?php endif; ?>
+              <?php $status = (string) $w['status']; require APP_ROOT . '/templates/partials/status_badge.php'; ?>
+            </span>
+          </span>
+
+          <?php if ($canTick): ?>
+            <form method="post" action="<?= e(url('task-done')) ?>" class="inline-form" data-leaves-page>
+              <?= Csrf::field() ?>
+              <input type="hidden" name="practice_id" value="<?= $practice_id ?>">
+              <input type="hidden" name="task_id" value="<?= $wid ?>">
+              <button type="submit" class="btn btn-primary btn-sm">Mark done</button>
+            </form>
+          <?php endif; ?>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  </section>
+<?php endif; ?>
 
 <h2 class="section-h"><?= $mine ? 'My tasks here' : 'Onboarding tasks' ?></h2>
 

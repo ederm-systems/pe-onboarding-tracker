@@ -27,6 +27,8 @@ function render(string $template, array $vars = []): void
     $vars['can_library']   = Auth::canManageLibrary();
     $vars['can_catalogue'] = Auth::canManageCatalogue();
     $vars['can_activity']  = Auth::canViewActivity();
+    // Admin and specialists may edit any task; a member only their own.
+    $vars['can_edit_any']  = Auth::isAdmin() || Auth::isSpecialist();
     $vars['can_delete']    = Auth::canDelete();
     $vars['flashes']  = take_flashes();
     $vars['template'] = $template;
@@ -360,7 +362,7 @@ if ($method === 'POST') {
     // Which writes each role may reach. Anything not listed is the
     // administrator's alone, so a new route is locked down by default
     // rather than accidentally open.
-    $openToAnyone = ['api/task-save', 'bulk-save', 'practice-notes-save'];
+    $openToAnyone = ['api/task-save', 'bulk-save', 'practice-notes-save', 'task-done'];
 
     $needsPractices = ['practice-save', 'practice-share'];
     $needsLibrary   = ['task-save', 'tasks-save-all', 'task-move', 'tasks-renumber'];
@@ -1082,6 +1084,28 @@ if ($method === 'POST') {
 
             $n = Repo::bulkUpdate($practiceId, $taskIds, $changes);
             flash(sprintf('Updated %d task(s).', $n));
+            redirect(url('practice', ['id' => $practiceId]));
+        }
+
+        // ---- Tick off a task the practice was holding up ---------------
+        case 'task-done': {
+            $practiceId = (int) ($_POST['practice_id'] ?? 0);
+            $taskId     = (int) ($_POST['task_id'] ?? 0);
+
+            // Same rule as any other edit: admin and specialists may
+            // touch anything, a member only their own.
+            if (!Auth::canEditTask($practiceId, $taskId)) {
+                flash('That task is not assigned to you, so you cannot change it.', 'error');
+                redirect(url('practice', ['id' => $practiceId]));
+            }
+
+            try {
+                $row = Repo::saveTaskState($practiceId, $taskId, ['status' => 'completed']);
+                flash('"' . $row['task_name'] . '" marked done. It has come off the practice\'s page.');
+            } catch (Throwable $ex) {
+                error_log('task-done failed: ' . $ex->getMessage());
+                flash('That task could not be updated.', 'error');
+            }
             redirect(url('practice', ['id' => $practiceId]));
         }
 
