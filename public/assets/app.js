@@ -572,6 +572,14 @@
     var submitted = false;
     pinField.addEventListener('input', function () {
       if (submitted) { return; }
+
+      // Digits only. Pasting a value with spaces or dashes keeps the
+      // digits rather than refusing the whole thing.
+      var digits = pinField.value.replace(/\D+/g, '').slice(0, 6);
+      if (digits !== pinField.value) {
+        pinField.value = digits;
+      }
+
       if (/^[0-9]{6}$/.test(pinField.value)) {
         submitted = true;
         var btn = pinField.form.querySelector('button[type="submit"]');

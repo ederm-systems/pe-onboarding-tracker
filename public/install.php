@@ -91,9 +91,9 @@ if ($action !== '' && $allowed) {
         }
 
         if ($action === 'hash') {
-            $pin = (string) ($_POST['pin'] ?? '');
-            if (strlen($pin) < 6) {
-                $errors[] = 'Use at least 6 characters. A short numeric PIN is easy to guess.';
+            $pin = trim((string) ($_POST['pin'] ?? ''));
+            if (!preg_match('/^[0-9]{6}$/', $pin)) {
+                $errors[] = 'The PIN must be exactly 6 digits, the same as everyone else\'s.';
             } else {
                 $hash = password_hash($pin, PASSWORD_DEFAULT);
             }
@@ -216,15 +216,21 @@ $pinSet = trim((string) ($config['admin_pin_hash'] ?? '')) !== '';
       <p class="v-warn"><strong>No PIN is set yet</strong>, so nobody can sign in to make changes.</p>
     <?php endif; ?>
     <p class="prose">
-      Type the PIN you want. This page hashes it and shows you the line to paste into
+      Type the 6-digit PIN you want. This page hashes it and shows you the line to paste into
       <code>config/config.php</code>. The PIN itself is never stored anywhere.
+    </p>
+    <p class="prose">
+      Pick one no team member is using. Sign-in tries the administrator PIN first, so a clash
+      would send them into your account. The People screen already refuses to hand a team member
+      a PIN matching yours, but nothing stops the reverse being done here by hand.
     </p>
     <form method="post" autocomplete="off">
       <input type="hidden" name="csrf" value="<?= e(Csrf::token()) ?>">
       <input type="hidden" name="action" value="hash">
       <label class="field" style="max-width: 20rem">
-        <span>PIN or passphrase <em>6 characters or more</em></span>
-        <input type="text" name="pin" autocomplete="off" spellcheck="false">
+        <span>PIN <em>exactly 6 digits</em></span>
+        <input type="text" name="pin" autocomplete="off" spellcheck="false"
+               inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="481920">
       </label>
       <div class="form-actions">
         <button class="btn btn-primary btn-sm" <?= $allowed ? '' : 'disabled' ?>>Generate hash</button>

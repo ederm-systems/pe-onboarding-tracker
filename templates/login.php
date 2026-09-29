@@ -33,13 +33,13 @@ $page_title = 'Sign in';
 
       <div class="auth-pin">
         <label for="pin" class="sr-only">PIN</label>
-        <?php /* No maxlength of 6: the administrator PIN may be a
-                 longer passphrase, and capping the field would stop it
-                 being typed at all. */ ?>
+        <?php /* Six digits, everywhere. Anything typed that is not a
+                 digit is dropped as it is entered, and the sixth digit
+                 signs in. */ ?>
         <input id="pin" type="password" name="pin" required autofocus
-               class="pin-input" inputmode="numeric" maxlength="64"
-               autocomplete="current-password" spellcheck="false"
-               placeholder="••••••">
+               class="pin-input" inputmode="numeric" maxlength="6"
+               pattern="[0-9]{6}" autocomplete="one-time-code"
+               spellcheck="false" placeholder="••••••">
         <button type="button" class="pin-peek" data-pin-peek
                 aria-label="Show PIN" title="Show PIN">Show</button>
       </div>
