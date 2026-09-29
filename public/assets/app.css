@@ -1387,6 +1387,43 @@ a.metric-hero:hover { color: #fff; }
 }
 .tab-n { background: var(--surface-3); color: var(--ink-3); }
 
+/* ---------- The audit log ---------- */
+
+.log-grid { font-size: .8125rem; }
+.log-grid td { vertical-align: top; }
+.log-grid th:nth-child(1), .log-grid td:nth-child(1) { width: 9.5rem; }
+.log-grid th:nth-child(2), .log-grid td:nth-child(2) { width: 11rem; }
+.log-grid th:nth-child(4), .log-grid td:nth-child(4),
+.log-grid th:nth-child(5), .log-grid td:nth-child(5) { width: 11rem; }
+.log-grid th:nth-child(6), .log-grid td:nth-child(6) { width: 10rem; }
+@media (max-width: 1100px) { .log-grid { min-width: 68rem; } }
+
+.log-what { display: block; color: var(--ink-2); }
+.log-tags { display: flex; gap: .25rem; flex-wrap: wrap; margin-top: .3rem; }
+.log-tags .chip { font-size: .6875rem; padding: .1rem .4rem; }
+
+/* Before and after. Long values are clipped rather than allowed to
+   stretch the row; the whole value is on the title attribute. */
+.log-old, .log-new {
+  display: block; max-width: 100%; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  font-size: .8125rem; border-radius: var(--radius-xs); padding: .1rem .35rem;
+}
+.log-old { background: var(--surface-3); color: var(--ink-2); }
+.log-new { background: var(--ok-soft); color: var(--ok); }
+.c-was, .c-now { max-width: 11rem; }
+
+/* ---------- Paging ---------- */
+
+.pager {
+  display: flex; align-items: center; gap: .75rem;
+  margin-top: 1.1rem; justify-content: center;
+}
+.pager-at { font-size: .8125rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+/* A dead end reads as a button but does nothing, so it must not invite
+   a click. */
+.pager span.btn { opacity: .45; cursor: default; box-shadow: none; }
+
 /* ---------- Row actions ---------- */
 
 /* These stay visible. Fading Deactivate and Delete in on hover looks

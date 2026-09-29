@@ -173,7 +173,14 @@ CREATE TABLE IF NOT EXISTS activity_log (
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY ix_log_practice (practice_id, created_at),
-  KEY ix_log_created (created_at)
+  KEY ix_log_created (created_at),
+  -- Each of these leads with the filtered column and follows with
+  -- created_at, so one index serves both the Activity screen's filter
+  -- and its ORDER BY created_at DESC.
+  KEY ix_log_actor (actor, created_at),
+  KEY ix_log_action (action, created_at),
+  KEY ix_log_entity (entity, created_at),
+  KEY ix_log_field (field, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS app_settings (

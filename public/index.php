@@ -105,6 +105,48 @@ function read_filters(): array
     ];
 }
 
+/**
+ * The Activity screen's own filters.
+ *
+ * Kept apart from read_filters() because the log is filtered on quite
+ * different columns from a task list. Every choice is checked against
+ * the values actually present in the log, so a hand-edited query string
+ * cannot smuggle anything into the SQL.
+ *
+ * @param array $choices from Activity::choices()
+ */
+function read_activity_filters(array $choices): array
+{
+    $pick = static function (string $key, array $allowed, bool $allowNone = false) {
+        $v = trim((string) ($_GET[$key] ?? ''));
+        if ($v === '') {
+            return null;
+        }
+        if ($allowNone && $v === 'none') {
+            return 'none';
+        }
+        return in_array($v, $allowed, true) ? $v : null;
+    };
+
+    $practice = trim((string) ($_GET['practice_id'] ?? ''));
+    if ($practice === 'none') {
+        $practiceId = 'none';
+    } else {
+        $practiceId = (int) $practice ?: null;
+    }
+
+    return [
+        'q'           => trim((string) ($_GET['q'] ?? '')),
+        'practice_id' => $practiceId,
+        'actor'       => $pick('actor',  $choices['actors']),
+        'action'      => $pick('action', $choices['actions']),
+        'entity'      => $pick('entity', $choices['entities']),
+        'field'       => $pick('field',  $choices['fields'], true),
+        'from'        => valid_date((string) ($_GET['from'] ?? '')),
+        'to'          => valid_date((string) ($_GET['to'] ?? '')),
+    ];
+}
+
 // ---------------------------------------------------------------------
 // Saving a whole grid of admin rows at once
 // ---------------------------------------------------------------------
@@ -1536,15 +1578,21 @@ switch ($route) {
 
     case 'admin/activity': {
         Auth::requireCan('view_activity');
-        $rows = Database::all(
-            'SELECT l.*, pr.name AS practice_name, t.name AS task_name
-               FROM activity_log l
-               LEFT JOIN practices pr ON pr.id = l.practice_id
-               LEFT JOIN tasks t      ON t.id = l.task_id
-              ORDER BY l.created_at DESC, l.id DESC
-              LIMIT 300'
-        );
-        render('admin/activity', ['rows' => $rows]);
+
+        $choices = Activity::choices();
+        $f       = read_activity_filters($choices);
+        $page    = max(1, (int) ($_GET['page'] ?? 1));
+        $result  = Activity::search($f, $page);
+
+        render('admin/activity', [
+            'result'    => $result,
+            'filters'   => $f,
+            'choices'   => $choices,
+            // Archived practices are included here, unlike everywhere
+            // else. Their history is exactly what somebody comes to an
+            // audit log looking for.
+            'practices' => Repo::practicesSimple(true),
+        ]);
         break;
     }
 

@@ -151,6 +151,19 @@ function post_int_or_null(string $key): ?int
     return (int) $v;
 }
 
+/** A YYYY-MM-DD date, or null when blank or not a real date. */
+function valid_date(?string $v): ?string
+{
+    $v = trim((string) $v);
+    if ($v === '') {
+        return null;
+    }
+    $d = DateTime::createFromFormat('Y-m-d', $v);
+    // The round trip rejects 2026-02-31, which createFromFormat itself
+    // happily rolls forward into March.
+    return ($d && $d->format('Y-m-d') === $v) ? $v : null;
+}
+
 /** Read a YYYY-MM-DD date from POST, or null when blank or invalid. */
 function post_date_or_null(string $key): ?string
 {
