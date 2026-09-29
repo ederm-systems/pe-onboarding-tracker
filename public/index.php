@@ -567,7 +567,7 @@ if ($method === 'POST') {
         }
 
         case 'categories-save-all': {
-            $fields = ['sort_order' => 'int', 'name' => 'str'];
+            $fields = ['sort_order' => 'int', 'name' => 'str', 'is_customer' => 'bool'];
             if (Auth::canDelete()) {
                 $fields['is_active'] = 'bool';
             }
@@ -708,8 +708,10 @@ if ($method === 'POST') {
                         $sort = (int) Database::scalar('SELECT COALESCE(MAX(sort_order),0) + 10 FROM categories');
                     }
                     Database::run(
-                        'INSERT INTO categories (name, sort_order, is_active) VALUES (:name, :sort_order, 1)',
-                        ['name' => $name, 'sort_order' => $sort]
+                        'INSERT INTO categories (name, sort_order, is_customer, is_active)
+                         VALUES (:name, :sort_order, :is_customer, 1)',
+                        ['name' => $name, 'sort_order' => $sort,
+                         'is_customer' => !empty($_POST['is_customer']) ? 1 : 0]
                     );
                     Activity::log('category', 'create', Database::lastId(), null, null, null, null, $name,
                         'Category created: ' . $name);
@@ -1288,20 +1290,46 @@ switch ($route) {
 
         $pid  = (int) $practice['id'];
         $rows = Repo::practiceTasks($pid, ['show_completed' => true]);
-        $byProduct = [];
-        foreach (Repo::groupTasks($rows) as $gid => $g) {
-            $byProduct[$gid] = [
-                'product_id'   => $g['product_id'],
-                'product_name' => $g['product_name'],
-                'rollup'       => Repo::rollup($g['tasks']),
+
+        // Per product: how far along, and which stage it is currently
+        // in, meaning the first category still holding open work.
+        $products = [];
+        foreach (Repo::groupTasks($rows) as $g) {
+            $stage = null;
+            foreach ($g['categories'] as $cat) {
+                foreach ($cat['tasks'] as $t) {
+                    if (!in_array($t['status'], ['completed', 'not_applicable'], true)) {
+                        $stage = $cat['category_name'];
+                        break 2;
+                    }
+                }
+            }
+            $products[] = [
+                'name'   => $g['product_name'],
+                'color'  => $g['product_color'] ?? null,
+                'stage'  => $stage,
+                'rollup' => Repo::rollup($g['tasks']),
             ];
         }
 
+        // The only tasks named on the page: open work in a category
+        // marked as the practice's own. Overdue first, then by date.
+        $actions = array_values(array_filter($rows, static fn($r) =>
+            !empty($r['is_customer'])
+            && !in_array($r['status'], ['completed', 'not_applicable'], true)
+        ));
+        usort($actions, static function ($a, $b) {
+            if (!empty($a['is_overdue']) !== !empty($b['is_overdue'])) {
+                return !empty($a['is_overdue']) ? -1 : 1;
+            }
+            return strcmp((string) ($a['due_date'] ?? '9999'), (string) ($b['due_date'] ?? '9999'));
+        });
+
         render('share', [
-            'practice'   => $practice,
-            'grouped'    => Repo::groupTasks($rows),
-            'rollup'     => Repo::rollup($rows),
-            'by_product' => $byProduct,
+            'practice' => $practice,
+            'rollup'   => Repo::rollup($rows),
+            'products' => $products,
+            'actions'  => $actions,
         ]);
         break;
     }

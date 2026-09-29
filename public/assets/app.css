@@ -581,7 +581,7 @@ a.mini-name:hover { color: var(--accent); }
   grid-template-columns: 4.5rem minmax(8rem, 1fr) 4rem minmax(9rem, 1.5fr) 4.5rem 5.5rem 4rem;
 }
 .cols-category .edit-head, .cols-category .edit-row {
-  grid-template-columns: 5rem minmax(10rem, 1fr) 4.5rem 4rem;
+  grid-template-columns: 5rem minmax(9rem, 1fr) 7rem 4.5rem 4rem;
 }
 .cols-person .edit-head, .cols-person .edit-row {
   grid-template-columns: minmax(8rem, 1fr) minmax(7rem, 1fr) minmax(9rem, 1.2fr) 5.5rem 4rem;
@@ -1167,15 +1167,49 @@ table.grid tbody tr.is-dirty:hover > td { background: #FDF1DC; }
 }
 .share-card > h3:first-of-type { margin-top: 0; }
 
-.share-tasks { list-style: none; margin: 0; padding: 0; }
-.share-tasks li {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: .55rem 0; border-bottom: 1px solid var(--line); font-size: .9375rem;
+/* What we need from you: the one place tasks are named. */
+.share-actions {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 1.35rem 1.5rem; margin-bottom: 1.25rem;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--warn);
 }
-.share-tasks li:last-child { border-bottom: 0; }
-.share-tasks li.is-done .share-task-name { color: var(--ink-3); }
-.share-task-name { min-width: 0; }
-.share-task-meta { display: flex; align-items: center; gap: .6rem; flex: none; white-space: nowrap; }
+.share-actions.is-urgent { border-left-color: var(--alert); }
+.share-actions > h2 {
+  font-size: 1.0625rem; display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem;
+}
+.share-count {
+  background: var(--warn-soft); color: var(--warn);
+  border-radius: 99px; padding: .1rem .5rem; font-size: .8125rem; font-weight: 600;
+}
+.share-actions.is-urgent .share-count { background: var(--alert-soft); color: var(--alert); }
+.share-urgent-note { color: var(--alert); font-size: .875rem; margin: 0 0 .5rem; }
+
+.share-actions-list { list-style: none; margin: .75rem 0 0; padding: 0; }
+.share-actions-list li {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+  padding: .75rem 0; border-top: 1px solid var(--line);
+}
+.share-actions-list li:first-child { border-top: 0; }
+.share-action-main { min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
+.share-action-name { font-weight: 500; font-size: .9375rem; }
+.share-action-desc { font-size: .8125rem; color: var(--ink-2); }
+.share-action-prod { font-size: .75rem; color: var(--ink-4); }
+.share-action-due { flex: none; font-size: .8125rem; white-space: nowrap; padding-top: .1rem; }
+.share-actions-list li.is-overdue .share-action-name { color: var(--alert); }
+.share-actions-foot {
+  font-size: .8125rem; color: var(--ink-3);
+  margin: 1rem 0 0; padding-top: .85rem; border-top: 1px solid var(--line);
+}
+
+/* Where each product is. */
+.share-products { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
+.share-prod-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap; margin-bottom: .4rem;
+}
+.share-prod-name { font-weight: 600; display: flex; align-items: center; gap: .45rem; }
+.share-prod-stage { font-size: .8125rem; color: var(--ink-2); }
 
 .share-foot {
   color: var(--ink-4); font-size: .8125rem; text-align: center; margin: 1.5rem 0 0;

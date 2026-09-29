@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS categories (
   id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name         VARCHAR(120) NOT NULL,
   color        CHAR(7) DEFAULT NULL,
+  -- Tasks here are the practice's own to do, so they are the only ones
+  -- listed as actions on the shared practice page.
+  is_customer  TINYINT(1) NOT NULL DEFAULT 0,
   sort_order   INT NOT NULL DEFAULT 0,
   is_active    TINYINT(1) NOT NULL DEFAULT 1,
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

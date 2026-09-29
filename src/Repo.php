@@ -443,6 +443,7 @@ final class Repo
                     p.id AS product_id, p.name AS product_name, p.sort_order AS product_sort,
                     p.color AS product_color,
                     c.id AS category_id, c.name AS category_name, c.sort_order AS category_sort,
+                    c.color AS category_color, c.is_customer AS is_customer,
                     {$st} AS status,
                     pt.id AS state_id,
                     {$asg} AS assignee_id,

@@ -3,32 +3,27 @@
  * The practice's own view of its onboarding, opened with a link and no
  * sign-in.
  *
- * Deliberately narrower than the internal page. It shows what the
- * practice needs to know: how far along things are, what is done, what
- * is outstanding, and what is waiting on them. It does not show
- * internal notes, who on our side owns each task, the activity log, or
- * any other practice.
+ * A status update, not a work log. It answers three questions and
+ * stops: how far along are we, what stage is each product at, and what
+ * is needed from us. The only individual tasks named are the ones in a
+ * category marked as the practice's own work, because those are the
+ * only ones they can act on.
+ *
+ * It does not show internal notes, who on our side owns anything, our
+ * internal task list, the activity log, or any other practice.
  *
  * @var array  $practice
- * @var array  $grouped    product => categories => tasks
  * @var array  $rollup
- * @var array  $by_product
+ * @var array  $products      per product: name, colour, rollup, current stage
+ * @var array  $actions       open tasks in customer-facing categories
  * @var array  $config
  */
 $page_title = (string) $practice['name'];
 $days       = days_until($practice['target_go_live_date'] ?? null);
 $pctDone    = (int) $rollup['progress'];
-
-// What the practice is likely to be asked about.
-$waiting = 0;
-foreach ($grouped as $g) {
-    foreach ($g['categories'] as $c) {
-        foreach ($c['tasks'] as $t) {
-            if (in_array($t['status'], ['waiting', 'blocked'], true)) {
-                $waiting++;
-            }
-        }
-    }
+$overdue    = 0;
+foreach ($actions as $a) {
+    if (!empty($a['is_overdue'])) { $overdue++; }
 }
 ?>
 <div class="share">
@@ -40,11 +35,11 @@ foreach ($grouped as $g) {
     </div>
     <h1><?= e($practice['name']) ?></h1>
     <p class="share-sub">
-      Onboarding progress
+      Onboarding status
       <?php if (!empty($practice['target_go_live_date'])): ?>
         · target go-live <?= e(fmt_date($practice['target_go_live_date'])) ?>
         <?php if ($days !== null && $practice['onboarding_state'] !== 'completed'): ?>
-          <?php if ($days < 0): ?>(<?= abs($days) ?> days past)
+          <?php if ($days < 0): ?><span class="v-alert">(<?= abs($days) ?> days past)</span>
           <?php elseif ($days === 0): ?>(today)
           <?php else: ?>(in <?= $days ?> days)<?php endif; ?>
         <?php endif; ?>
@@ -62,66 +57,96 @@ foreach ($grouped as $g) {
       <span class="share-gauge-num"><?= $pctDone ?>%</span>
     </div>
     <div class="share-hero-text">
-      <p class="share-big"><?= (int) $rollup['completed'] ?> of <?= (int) $rollup['countable'] ?> steps complete</p>
-      <?php if ($waiting > 0): ?>
-        <p class="share-note">
-          <?= $waiting ?> step<?= $waiting === 1 ? '' : 's' ?> currently waiting or held up.
-          Your onboarding contact will be in touch about anything needed from you.
-        </p>
-      <?php elseif ($pctDone >= 100): ?>
-        <p class="share-note">Everything is complete. Welcome aboard.</p>
-      <?php else: ?>
-        <p class="share-note">Everything is moving. Nothing is held up at the moment.</p>
-      <?php endif; ?>
+      <p class="share-big">
+        <?php if ($pctDone >= 100): ?>
+          Onboarding complete
+        <?php elseif ($actions): ?>
+          <?= count($actions) ?> thing<?= count($actions) === 1 ? '' : 's' ?> needed from you
+        <?php else: ?>
+          On track, nothing needed from you
+        <?php endif; ?>
+      </p>
+      <p class="share-note">
+        <?= (int) $rollup['completed'] ?> of <?= (int) $rollup['countable'] ?> steps complete.
+        <?php if (!$actions && $pctDone < 100): ?>
+          We are working through the rest and will be in touch if anything is needed.
+        <?php endif; ?>
+      </p>
     </div>
   </section>
 
-  <?php if ($by_product): ?>
+  <?php /* The only place individual tasks are named, because these are
+           the only ones the practice can act on. */ ?>
+  <?php if ($actions): ?>
+    <section class="share-actions <?= $overdue > 0 ? 'is-urgent' : '' ?>">
+      <h2>
+        What we need from you
+        <span class="share-count"><?= count($actions) ?></span>
+      </h2>
+      <?php if ($overdue > 0): ?>
+        <p class="share-urgent-note">
+          <?= $overdue ?> of these <?= $overdue === 1 ? 'is' : 'are' ?> past the date we had hoped for.
+        </p>
+      <?php endif; ?>
+
+      <ul class="share-actions-list">
+        <?php foreach ($actions as $a): ?>
+          <li class="<?= !empty($a['is_overdue']) ? 'is-overdue' : '' ?>">
+            <span class="share-action-main">
+              <span class="share-action-name"><?= e($a['task_name']) ?></span>
+              <?php if (!empty($a['description'])): ?>
+                <span class="share-action-desc"><?= e($a['description']) ?></span>
+              <?php endif; ?>
+              <span class="share-action-prod"><?= e($a['product_name']) ?></span>
+            </span>
+            <span class="share-action-due">
+              <?php if (!empty($a['due_date'])): ?>
+                <span class="<?= !empty($a['is_overdue']) ? 'v-alert' : 'muted' ?>">
+                  <?= !empty($a['is_overdue']) ? 'Was due ' : 'By ' ?><?= e(fmt_date($a['due_date'])) ?>
+                </span>
+              <?php else: ?>
+                <span class="muted">When you can</span>
+              <?php endif; ?>
+            </span>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+
+      <p class="share-actions-foot">
+        Your onboarding contact will help with any of these. Reply to them and we will pick it up.
+      </p>
+    </section>
+  <?php endif; ?>
+
+  <?php if ($products): ?>
     <section class="share-card">
-      <h2>By product</h2>
-      <ul class="mini-list">
-        <?php foreach ($by_product as $bp): $r = $bp['rollup']; ?>
+      <h2>Where each product is</h2>
+      <ul class="share-products">
+        <?php foreach ($products as $p): $r = $p['rollup']; ?>
           <li>
-            <div class="mini-row">
-              <span class="mini-name"><?= e($bp['product_name']) ?></span>
-              <span class="mini-meta"><?= (int) $r['completed'] ?>/<?= (int) $r['countable'] ?></span>
+            <div class="share-prod-head">
+              <span class="share-prod-name">
+                <?php if (!empty($p['color'])): ?>
+                  <span class="chip-dot" style="background: <?= e($p['color']) ?>"></span>
+                <?php endif; ?>
+                <?= e($p['name']) ?>
+              </span>
+              <span class="share-prod-stage">
+                <?php if ((int) $r['progress'] >= 100): ?>
+                  <span class="badge st-completed">Complete</span>
+                <?php elseif (!empty($p['stage'])): ?>
+                  <span class="muted">Currently in</span> <strong><?= e($p['stage']) ?></strong>
+                <?php else: ?>
+                  <span class="muted">Not started</span>
+                <?php endif; ?>
+              </span>
             </div>
             <?php $pct = (int) $r['progress']; $bar_size = 'sm'; require APP_ROOT . '/templates/partials/progress.php'; ?>
           </li>
         <?php endforeach; ?>
       </ul>
     </section>
-  <?php endif; ?>
-
-  <?php foreach ($grouped as $g): ?>
-    <section class="share-card">
-      <h2>
-        <?php if (!empty($g['product_color'])): ?>
-          <span class="chip-dot" style="background: <?= e($g['product_color']) ?>"></span>
-        <?php endif; ?>
-        <?= e($g['product_name']) ?>
-      </h2>
-
-      <?php foreach ($g['categories'] as $cat): ?>
-        <h3 class="share-cat"><?= e($cat['category_name']) ?></h3>
-        <ul class="share-tasks">
-          <?php foreach ($cat['tasks'] as $t): ?>
-            <li class="<?= $t['status'] === 'completed' ? 'is-done' : '' ?>">
-              <span class="share-task-name"><?= e($t['task_name']) ?></span>
-              <span class="share-task-meta">
-                <?php if (!empty($t['due_date']) && $t['status'] !== 'completed'): ?>
-                  <span class="muted"><?= e(fmt_date($t['due_date'])) ?></span>
-                <?php endif; ?>
-                <?php $status = (string) $t['status']; require APP_ROOT . '/templates/partials/status_badge.php'; ?>
-              </span>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      <?php endforeach; ?>
-    </section>
-  <?php endforeach; ?>
-
-  <?php if (!$grouped): ?>
+  <?php else: ?>
     <section class="share-card">
       <p class="muted">Your onboarding plan is being set up. This page will fill in shortly.</p>
     </section>

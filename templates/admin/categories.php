@@ -8,7 +8,12 @@ $page_title = 'Categories';
 <div class="page-head">
   <div>
     <h1>Task categories</h1>
-    <p class="sub">Categories group tasks inside each product. A new category is available to every product immediately.</p>
+    <p class="sub">
+      Categories group tasks inside each product. A new category is available to every product
+      immediately. Tick <strong>Practice's own</strong> for a category whose tasks are the
+      practice's to do, such as Customer: open tasks there are the only ones listed on the
+      shared practice page, under "What we need from you".
+    </p>
   </div>
 </div>
 
@@ -18,7 +23,12 @@ $page_title = 'Categories';
     <?= Csrf::field() ?>
     <label class="field f-grow">
       <span>Name <abbr class="req" title="Required">*</abbr></span>
-      <input type="text" name="name" required maxlength="120" placeholder="e.g. Data Migration">
+      <input type="text" name="name" required maxlength="120" placeholder="e.g. Customer">
+    </label>
+    <label class="field">
+      <span>Practice's own work</span>
+      <span class="check-line"><input type="checkbox" name="is_customer" value="1">
+        <span class="muted">Shown to the practice</span></span>
     </label>
     <div class="form-actions">
       <button type="submit" class="btn btn-primary btn-sm">Add category</button>
@@ -30,7 +40,7 @@ $page_title = 'Categories';
 
 <div class="edit-rows cols-category" data-grid>
   <div class="edit-head">
-    <span>Order</span><span>Name</span><span class="ta-c">Tasks</span><?php if ($can_delete): ?><span class="ta-c">Active</span><?php endif; ?>
+    <span>Order</span><span>Name</span><span class="ta-c">Practice's own</span><span class="ta-c">Tasks</span><?php if ($can_delete): ?><span class="ta-c">Active</span><?php endif; ?>
   </div>
 
   <?php foreach ($rows as $r): $id = (int) $r['id']; ?>
@@ -43,6 +53,12 @@ $page_title = 'Categories';
         <label class="cell"><span class="cell-lab">Name</span>
           <input form="gridform" type="text" maxlength="120" name="rows[<?= $id ?>][name]"
                  value="<?= e($r['name']) ?>"></label>
+
+        <label class="cell ta-c"><span class="cell-lab">Practice's own</span>
+          <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_customer]" value="0">
+          <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_customer]" value="1"
+                 <?= !empty($r['is_customer']) ? 'checked' : '' ?>
+                 title="Open tasks here are listed on the practice's own page"></label>
 
         <span class="cell ta-c"><span class="cell-lab">Tasks</span><?= (int) $r['task_count'] ?></span>
 
