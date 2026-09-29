@@ -128,7 +128,9 @@ require APP_ROOT . '/templates/partials/filter_bar.php';
                 </td>
                 <td class="c-task"><?= e($r['task_name']) ?></td>
                 <td><?php $status = (string) $r['status']; require APP_ROOT . '/templates/partials/status_badge.php'; ?></td>
-                <td><?= $r['assignee_name'] ? e($r['assignee_name']) : '<span class="muted">Unassigned</span>' ?></td>
+                <td><?= $r['assignee_name']
+                          ? person($r['assignee_name'])
+                          : '<span class="muted">Unassigned</span>' ?></td>
                 <td class="c-due">
                   <?= e(fmt_date($r['due_date'] ?? null)) ?>
                   <?php if (!empty($r['is_overdue'])): ?><span class="chip chip-alert">Overdue</span><?php endif; ?>

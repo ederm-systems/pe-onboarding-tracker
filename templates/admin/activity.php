@@ -38,7 +38,7 @@ $page_title = 'Activity';
         <?php endif; ?>
         <?= e($r['summary'] ?? ($r['action'] . ' ' . $r['entity'])) ?>
       </td>
-      <td><span class="muted"><?= e($r['actor']) ?></span></td>
+      <td><?= person($r['actor'], 'System') ?></td>
     </tr>
   <?php endforeach; ?>
   </tbody>

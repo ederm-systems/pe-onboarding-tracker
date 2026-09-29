@@ -198,7 +198,7 @@ $days        = days_until($practice['target_go_live_date'] ?? null);
   <section class="card">
     <h2 class="card-h">Who is carrying the work here</h2>
     <?php
-      $chart_rows  = array_values($byPerson);
+      $chart_rows  = array_map(static fn($r) => $r + ['avatar' => true], array_values($byPerson));
       $chart_empty = 'Nothing outstanding on this practice.';
       require APP_ROOT . '/templates/partials/bar_chart.php';
     ?>

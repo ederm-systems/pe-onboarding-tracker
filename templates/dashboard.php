@@ -49,75 +49,98 @@ $pctDone = (int) $totals['progress'];
   </div>
 </div>
 
-<section class="kpis" aria-label="Headline numbers">
+<section class="metrics" aria-label="Headline numbers">
 
-  <?php /* A team member's first question is their own workload; the
+  <?php /* One dark card carries the headline figure, the other three
+           stay white with a small coloured tile. Four saturated tiles
+           in a row read as decoration; one reads as emphasis.
+
+           A team member's first question is their own workload; the
            administrator's is the portfolio. */ ?>
   <?php if ($my_work !== null): ?>
-  <a class="kpi kpi-blue" href="<?= e(url('tasks')) ?>">
-    <span class="kpi-label">My open tasks</span>
-    <span class="kpi-value"><?= (int) $my_work['open_count'] ?></span>
-    <span class="kpi-foot">
-      <?php if ((int) $my_work['blocked'] > 0 || (int) $my_work['overdue'] > 0): ?>
-        <?= (int) $my_work['blocked'] ?> blocked · <?= (int) $my_work['overdue'] ?> overdue
+  <a class="metric metric-hero" href="<?= e(url('tasks')) ?>">
+    <div class="metric-top">
+      <span class="metric-ico" aria-hidden="true"><svg><use href="#i-check"/></svg></span>
+      <span class="metric-label">My open tasks</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-value"><?= (int) $my_work['open_count'] ?></span>
+      <?php if ((int) $my_work['overdue'] > 0): ?>
+        <span class="delta delta-down"><?= (int) $my_work['overdue'] ?> overdue</span>
+      <?php endif; ?>
+    </div>
+    <span class="metric-foot">
+      <?php if ((int) $my_work['blocked'] > 0): ?>
+        <?= (int) $my_work['blocked'] ?> blocked
       <?php elseif ((int) $my_work['open_count'] === 0): ?>
-        nothing outstanding
+        Nothing outstanding
       <?php else: ?>
-        none blocked or overdue
+        None blocked
       <?php endif; ?>
     </span>
-  <?php else: ?>
-  <a class="kpi kpi-blue" href="<?= e(url('practices')) ?>">
-    <span class="kpi-label">Practices in flight</span>
-    <span class="kpi-value"><?= (int) $totals['practices'] ?></span>
-    <span class="kpi-foot">
-      <?= (int) $health['on_track'] ?> on track
-      <?php if ((int) $health['on_hold'] > 0): ?> · <?= (int) $health['on_hold'] ?> on hold<?php endif; ?>
-    </span>
-  <?php endif; ?>
-    <svg class="kpi-art" viewBox="0 0 120 40" aria-hidden="true">
-      <path d="M0 32 L20 26 L40 28 L60 18 L80 20 L100 10 L120 6" fill="none"
-            stroke="rgba(255,255,255,.55)" stroke-width="2.5" stroke-linecap="round"/>
-    </svg>
   </a>
-
-  <div class="kpi kpi-green">
-    <span class="kpi-label">Overall progress</span>
-    <div class="kpi-gauge">
-      <svg viewBox="0 0 42 42" role="img" aria-label="<?= $pctDone ?> percent complete">
-        <circle cx="21" cy="21" r="15.915" class="gauge-track"></circle>
-        <circle cx="21" cy="21" r="15.915" class="gauge-fill"
-                stroke-dasharray="<?= $pctDone ?> <?= 100 - $pctDone ?>" stroke-dashoffset="25"></circle>
-      </svg>
-      <span class="kpi-gauge-num"><?= $pctDone ?>%</span>
+  <?php else: ?>
+  <a class="metric metric-hero" href="<?= e(url('practices')) ?>">
+    <div class="metric-top">
+      <span class="metric-ico" aria-hidden="true"><svg><use href="#i-build"/></svg></span>
+      <span class="metric-label">Practices in flight</span>
     </div>
-    <span class="kpi-foot"><?= (int) $totals['completed'] ?> of <?= (int) $totals['countable'] ?> tasks done</span>
+    <div class="metric-row">
+      <span class="metric-value"><?= (int) $totals['practices'] ?></span>
+    </div>
+    <svg class="metric-spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points="0,26 15,24 30,21 45,22 60,17 75,14 90,12 105,9 120,6"
+                fill="none" stroke="#7DD3FC" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="metric-foot">
+      <?= (int) $health['on_track'] ?> on track<?php if ((int) $health['on_hold'] > 0): ?>,
+      <?= (int) $health['on_hold'] ?> on hold<?php endif; ?>
+    </span>
+  </a>
+  <?php endif; ?>
+
+  <div class="metric">
+    <div class="metric-top">
+      <span class="metric-ico ico-green" aria-hidden="true"><svg><use href="#i-pulse"/></svg></span>
+      <span class="metric-label">Overall progress</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-value"><?= $pctDone ?><small>%</small></span>
+    </div>
+    <div class="bar-wrap">
+      <span class="bar <?= $pctDone >= 100 ? 'bar-done' : '' ?>"><span style="width: <?= $pctDone ?>%"></span></span>
+    </div>
+    <span class="metric-foot"><?= (int) $totals['completed'] ?> of <?= (int) $totals['countable'] ?> tasks done</span>
   </div>
 
-  <a class="kpi <?= (int) $health['attention'] > 0 ? 'kpi-amber' : 'kpi-slate' ?>"
-     href="<?= e(url('practices', ['attention' => 1])) ?>">
-    <span class="kpi-label">Need attention</span>
-    <span class="kpi-value"><?= (int) $health['attention'] ?></span>
-    <span class="kpi-foot">
-      <?= (int) $health['attention'] === 0 ? 'every practice is healthy' : 'practices with a blocker or overdue work' ?>
+  <a class="metric" href="<?= e(url('practices', ['attention' => 1])) ?>">
+    <div class="metric-top">
+      <span class="metric-ico <?= (int) $health['attention'] > 0 ? 'ico-amber' : 'ico-slate' ?>"
+            aria-hidden="true"><svg><use href="#i-clock"/></svg></span>
+      <span class="metric-label">Need attention</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-value"><?= (int) $health['attention'] ?></span>
+      <span class="metric-of">of <?= (int) $totals['practices'] ?></span>
+    </div>
+    <span class="metric-foot">
+      <?= (int) $health['attention'] === 0 ? 'Every practice is healthy' : 'A blocker or overdue work' ?>
     </span>
-    <svg class="kpi-art" viewBox="0 0 120 40" aria-hidden="true">
-      <?php for ($i = 0; $i < 6; $i++): ?>
-        <rect x="<?= 6 + $i * 20 ?>" y="<?= 30 - ($i % 3) * 7 ?>" width="10"
-              height="<?= 6 + ($i % 3) * 7 ?>" rx="2" fill="rgba(255,255,255,.4)"/>
-      <?php endfor; ?>
-    </svg>
   </a>
 
-  <a class="kpi <?= ($totals['blocked'] + $totals['overdue']) > 0 ? 'kpi-red' : 'kpi-slate' ?>"
-     href="<?= e(url('tasks', ['blocked' => 1])) ?>">
-    <span class="kpi-label">Blocked &amp; overdue</span>
-    <span class="kpi-value"><?= (int) $totals['blocked'] ?><span class="kpi-split">/</span><?= (int) $totals['overdue'] ?></span>
-    <span class="kpi-foot"><?= (int) $totals['blocked'] ?> blocked, <?= (int) $totals['overdue'] ?> overdue</span>
-    <svg class="kpi-art" viewBox="0 0 120 40" aria-hidden="true">
-      <circle cx="96" cy="20" r="16" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
-      <circle cx="96" cy="20" r="7"  fill="rgba(255,255,255,.28)"/>
-    </svg>
+  <a class="metric" href="<?= e(url('tasks', ['blocked' => 1])) ?>">
+    <div class="metric-top">
+      <span class="metric-ico <?= ($totals['blocked'] + $totals['overdue']) > 0 ? 'ico-red' : 'ico-slate' ?>"
+            aria-hidden="true"><svg><use href="#i-alert"/></svg></span>
+      <span class="metric-label">Blocked and overdue</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-value"><?= (int) $totals['blocked'] + (int) $totals['overdue'] ?></span>
+    </div>
+    <span class="metric-foot">
+      <?= (int) $totals['blocked'] ?> blocked, <?= (int) $totals['overdue'] ?> overdue
+    </span>
   </a>
 
 </section>
@@ -207,7 +230,8 @@ $pctDone = (int) $totals['progress'];
     <h2 class="card-h">Open work by person</h2>
     <?php
       $chart_rows = array_map(static fn($r) => $r + [
-        'href' => url('tasks', ['assignee_id' => $r['assignee_id'] ?: 'none']),
+        'href'   => url('tasks', ['assignee_id' => $r['assignee_id'] ?: 'none']),
+        'avatar' => true,
       ], $by_assignee);
       $chart_empty = 'Nothing open. Either everything is done, or no products are selected yet.';
       require APP_ROOT . '/templates/partials/bar_chart.php';

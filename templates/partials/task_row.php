@@ -76,7 +76,9 @@ if (!empty($t['is_overdue']))     { $rowCls .= ' task-overdue'; }
         <?php endforeach; ?>
       </select>
     <?php else: ?>
-      <?= $t['assignee_name'] ? e($t['assignee_name']) : '<span class="muted">Unassigned</span>' ?>
+      <?= $t['assignee_name']
+            ? person($t['assignee_name'])
+            : '<span class="muted">Unassigned</span>' ?>
     <?php endif; ?>
   </td>
 

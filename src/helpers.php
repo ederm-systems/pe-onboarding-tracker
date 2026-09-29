@@ -176,6 +176,56 @@ function take_flashes(): array
     return is_array($f) ? $f : [];
 }
 
+/**
+ * Up to two initials from a person's name. "Maya Reyes" gives MR,
+ * "Cher" gives CH, an empty name gives a question mark so the slot
+ * still has something in it.
+ */
+function initials(?string $name): string
+{
+    $name = trim((string) $name);
+    if ($name === '') {
+        return '?';
+    }
+    $parts = preg_split('/\s+/', $name) ?: [];
+    if (count($parts) >= 2) {
+        return mb_strtoupper(mb_substr($parts[0], 0, 1) . mb_substr($parts[count($parts) - 1], 0, 1));
+    }
+    return mb_strtoupper(mb_substr($name, 0, 2));
+}
+
+/**
+ * One of eight tints, chosen from the name itself, so the same person
+ * keeps the same colour on every screen without storing anything.
+ */
+function avatar_tint(?string $name): int
+{
+    $name = trim((string) $name);
+    return $name === '' ? 0 : (abs(crc32(mb_strtolower($name))) % 7) + 1;
+}
+
+/**
+ * An initials bubble. Pass null or an empty name for the unassigned
+ * slot, which comes out grey with a question mark.
+ */
+function avatar(?string $name, bool $small = true): string
+{
+    $cls = 'avatar' . ($small ? ' avatar-sm' : '') . ' av-' . avatar_tint($name);
+    $label = trim((string) $name) === '' ? 'Unassigned' : $name;
+    return '<span class="' . $cls . '" aria-hidden="true">' . e(initials($name)) . '</span>'
+         . '<span class="sr-only">' . e($label) . '</span>';
+}
+
+/** An initials bubble followed by the name, for table cells. */
+function person(?string $name, string $fallback = 'Unassigned'): string
+{
+    $shown = trim((string) $name) === '' ? $fallback : $name;
+    return '<span class="person">'
+         . '<span class="avatar avatar-sm av-' . avatar_tint($name) . '" aria-hidden="true">'
+         . e(initials($name)) . '</span>'
+         . '<span class="person-name">' . e($shown) . '</span></span>';
+}
+
 /** Respond with JSON and stop. */
 function json_out(array $payload, int $code = 200)
 {
