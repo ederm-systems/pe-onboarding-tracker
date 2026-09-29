@@ -17,12 +17,19 @@
 <title><?= e($page_title ?? 'Onboarding') ?> · <?= e($config['app_name']) ?></title>
 <link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>">
 </head>
-<body class="<?= $template === 'login' ? 'auth-page' : '' ?>">
+<?php
+  // The sign-in page and the practice's own shared page both stand
+  // alone: no navigation, because none of it applies to whoever is
+  // looking at them.
+  $bare = in_array($template, ['login', 'share'], true);
+?>
+<body class="<?= $bare ? 'auth-page' : '' ?><?= $template === 'share' ? ' share-page' : '' ?>">
 
 <a class="skip-link" href="#main">Skip to content</a>
 
 <?php /* The top bar is hidden on the sign-in page: none of its links
          lead anywhere until you are signed in. */ ?>
+<?php if (!$bare): ?>
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="<?= e(url('dashboard')) ?>">
@@ -37,11 +44,15 @@
       <?php if ($can_library): ?>
         <a href="<?= e(url('admin/tasks')) ?>" <?= ($template === 'admin/tasks') ? 'class="on"' : '' ?>>Task library</a>
       <?php endif; ?>
-      <?php if ($is_admin): ?>
+      <?php if ($can_catalogue): ?>
         <a href="<?= e(url('admin/products')) ?>" <?= ($template === 'admin/products') ? 'class="on"' : '' ?>>Products</a>
         <a href="<?= e(url('admin/categories')) ?>" <?= ($template === 'admin/categories') ? 'class="on"' : '' ?>>Categories</a>
-        <a href="<?= e(url('admin/assignees')) ?>" <?= ($template === 'admin/assignees') ? 'class="on"' : '' ?>>People</a>
+      <?php endif; ?>
+      <?php if ($can_activity): ?>
         <a href="<?= e(url('admin/activity')) ?>" <?= ($template === 'admin/activity') ? 'class="on"' : '' ?>>Activity</a>
+      <?php endif; ?>
+      <?php if ($is_admin): ?>
+        <a href="<?= e(url('admin/assignees')) ?>" <?= ($template === 'admin/assignees') ? 'class="on"' : '' ?>>People</a>
         <a href="<?= e(url('admin/archive')) ?>" <?= ($template === 'admin/archive') ? 'class="on"' : '' ?>>Archive</a>
       <?php endif; ?>
     </nav>
@@ -63,6 +74,7 @@
     </div>
   </div>
 </header>
+<?php endif; ?>
 
 <main id="main" class="wrap">
 

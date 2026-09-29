@@ -30,7 +30,7 @@ $page_title = 'Categories';
 
 <div class="edit-rows cols-category" data-grid>
   <div class="edit-head">
-    <span>Order</span><span>Name</span><span class="ta-c">Tasks</span><span class="ta-c">Active</span>
+    <span>Order</span><span>Name</span><span class="ta-c">Tasks</span><?php if ($can_delete): ?><span class="ta-c">Active</span><?php endif; ?>
   </div>
 
   <?php foreach ($rows as $r): $id = (int) $r['id']; ?>
@@ -46,18 +46,22 @@ $page_title = 'Categories';
 
         <span class="cell ta-c"><span class="cell-lab">Tasks</span><?= (int) $r['task_count'] ?></span>
 
-        <label class="cell ta-c"><span class="cell-lab">Active</span>
-          <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_active]" value="0">
-          <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_active]" value="1"
-                 <?= !empty($r['is_active']) ? 'checked' : '' ?>></label>
+        <?php if ($can_delete): ?>
+          <label class="cell ta-c"><span class="cell-lab">Active</span>
+            <input form="gridform" type="hidden" name="rows[<?= $id ?>][is_active]" value="0">
+            <input form="gridform" type="checkbox" name="rows[<?= $id ?>][is_active]" value="1"
+                   <?= !empty($r['is_active']) ? 'checked' : '' ?>></label>
+        <?php endif; ?>
       </div>
 
+      <?php if ($can_delete): ?>
       <form method="post" action="<?= e(url('category-delete')) ?>" class="edit-row-side"
             data-confirm="Remove <?= e($r['name']) ?>? If tasks use it, it will be deactivated instead of deleted.">
         <?= Csrf::field() ?>
         <input type="hidden" name="id" value="<?= $id ?>">
         <button type="submit" class="btn btn-danger btn-xs">Remove</button>
       </form>
+      <?php endif; ?>
     </div>
   <?php endforeach; ?>
 </div>

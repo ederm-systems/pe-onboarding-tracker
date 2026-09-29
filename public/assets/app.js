@@ -532,6 +532,35 @@
   }
 
   // ---------------------------------------------------------------
+  // Copy a value to the clipboard, for the shareable link
+  // ---------------------------------------------------------------
+
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest && ev.target.closest('[data-copy]');
+    if (!btn) { return; }
+    var field = document.querySelector(btn.getAttribute('data-copy'));
+    if (!field) { return; }
+
+    field.select();
+    field.setSelectionRange(0, 99999);
+
+    var done = function () {
+      var was = btn.textContent;
+      btn.textContent = 'Copied';
+      window.setTimeout(function () { btn.textContent = was; }, 1600);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(field.value).then(done, function () {
+        // Older browsers, and any page not served over https.
+        try { document.execCommand('copy'); done(); } catch (e) {}
+      });
+    } else {
+      try { document.execCommand('copy'); done(); } catch (e) {}
+    }
+  });
+
+  // ---------------------------------------------------------------
   // Sign in: let people check what they typed
   // ---------------------------------------------------------------
 

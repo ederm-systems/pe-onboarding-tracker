@@ -11,9 +11,10 @@ declare(strict_types=1);
  *   admin       The global administrator. Signs in with the PIN in
  *               config/config.php. May do anything, including delete.
  *   specialist  An Onboarding Specialist. Adds and edits practices,
- *               shapes the task library, and moves any task forward on
- *               any practice. Cannot delete, deactivate or archive, and
- *               cannot reach Products, Categories, People or Archive.
+ *               products, categories and the task library, moves any
+ *               task forward on any practice, and reads the activity
+ *               log. Cannot delete, deactivate or archive anything, and
+ *               cannot reach People or the Archive.
  *   member      A team member. Sees everything, and may change only the
  *               tasks assigned to them.
  *   guest       Not signed in. Sees the sign-in page and nothing else.
@@ -192,6 +193,22 @@ final class Auth
 
     /** Add, edit, reorder and reassign tasks in the library. */
     public static function canManageLibrary(): bool
+    {
+        return self::isAdmin() || self::isSpecialist();
+    }
+
+    /**
+     * Add and edit products and task categories. Switching one off is
+     * not included: that hides its tasks from every practice at once,
+     * so it counts as removal and stays with the administrator.
+     */
+    public static function canManageCatalogue(): bool
+    {
+        return self::isAdmin() || self::isSpecialist();
+    }
+
+    /** Read the activity log. Nothing can be changed from it. */
+    public static function canViewActivity(): bool
     {
         return self::isAdmin() || self::isSpecialist();
     }
@@ -415,6 +432,8 @@ final class Auth
             case 'manage':           $ok = self::canManage();          break;
             case 'manage_practices': $ok = self::canManagePractices(); break;
             case 'manage_library':   $ok = self::canManageLibrary();   break;
+            case 'manage_catalogue': $ok = self::canManageCatalogue(); break;
+            case 'view_activity':    $ok = self::canViewActivity();    break;
             case 'delete':           $ok = self::canDelete();          break;
         }
         if ($ok) {

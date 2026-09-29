@@ -25,6 +25,8 @@ function render(string $template, array $vars = []): void
     $vars['member_id']     = Auth::memberId();
     $vars['can_practices'] = Auth::canManagePractices();
     $vars['can_library']   = Auth::canManageLibrary();
+    $vars['can_catalogue'] = Auth::canManageCatalogue();
+    $vars['can_activity']  = Auth::canViewActivity();
     $vars['can_delete']    = Auth::canDelete();
     $vars['flashes']  = take_flashes();
     $vars['template'] = $template;
@@ -360,8 +362,10 @@ if ($method === 'POST') {
     // rather than accidentally open.
     $openToAnyone = ['api/task-save', 'bulk-save', 'practice-notes-save'];
 
-    $needsPractices = ['practice-save'];
+    $needsPractices = ['practice-save', 'practice-share'];
     $needsLibrary   = ['task-save', 'tasks-save-all', 'task-move', 'tasks-renumber'];
+    $needsCatalogue = ['product-save', 'products-save-all',
+                       'category-save', 'categories-save-all'];
 
     if (in_array($route, $openToAnyone, true)) {
         // Per-task permission is checked inside each handler.
@@ -369,6 +373,8 @@ if ($method === 'POST') {
         Auth::requireCan('manage_practices');
     } elseif (in_array($route, $needsLibrary, true)) {
         Auth::requireCan('manage_library');
+    } elseif (in_array($route, $needsCatalogue, true)) {
+        Auth::requireCan('manage_catalogue');
     } else {
         Auth::requireAdmin();
     }
@@ -546,23 +552,26 @@ if ($method === 'POST') {
                     unset($rows[$id]['color']);
                 }
             }
-            $r = save_grid('products', 'product', [
+            $fields = [
                 'sort_order'  => 'int',
                 'name'        => 'str',
                 'color'       => 'strnull',
                 'description' => 'strnull',
-                'is_active'   => 'bool',
-            ], $rows);
+            ];
+            if (Auth::canDelete()) {
+                $fields['is_active'] = 'bool';
+            }
+            $r = save_grid('products', 'product', $fields, $rows);
             grid_flash($r, 'product');
             redirect(url('admin/products'));
         }
 
         case 'categories-save-all': {
-            $r = save_grid('categories', 'category', [
-                'sort_order' => 'int',
-                'name'       => 'str',
-                'is_active'  => 'bool',
-            ], (array) ($_POST['rows'] ?? []));
+            $fields = ['sort_order' => 'int', 'name' => 'str'];
+            if (Auth::canDelete()) {
+                $fields['is_active'] = 'bool';
+            }
+            $r = save_grid('categories', 'category', $fields, (array) ($_POST['rows'] ?? []));
             grid_flash($r, 'category');
             redirect(url('admin/categories'));
         }
@@ -1074,6 +1083,42 @@ if ($method === 'POST') {
             redirect(url('practice', ['id' => $practiceId]));
         }
 
+        // ---- The practice's own shareable link -------------------------
+        case 'practice-share': {
+            $id = (int) ($_POST['id'] ?? 0);
+            $p  = Repo::practice($id);
+            if (!$p) {
+                not_found('That practice does not exist.');
+            }
+
+            $action = (string) ($_POST['do'] ?? 'create');
+
+            if ($action === 'revoke') {
+                Database::run(
+                    'UPDATE practices SET share_token = NULL, share_created_at = NULL WHERE id = :id',
+                    ['id' => $id]
+                );
+                Activity::log('practice', 'share_revoke', $id, $id, null, null, null, null,
+                    'Shared link turned off for ' . $p['name']);
+                flash('The link has been turned off. Anyone holding it now sees a not-valid message.');
+            } else {
+                // 32 hex characters from a cryptographic source, so the
+                // link cannot be guessed by trying practice ids.
+                $token = bin2hex(random_bytes(16));
+                Database::run(
+                    'UPDATE practices SET share_token = :t, share_created_at = NOW() WHERE id = :id',
+                    ['t' => $token, 'id' => $id]
+                );
+                Activity::log('practice', 'share_' . ($action === 'replace' ? 'replace' : 'create'),
+                    $id, $id, null, null, null, null,
+                    ($action === 'replace' ? 'Shared link replaced for ' : 'Shared link created for ') . $p['name']);
+                flash($action === 'replace'
+                    ? 'A new link has been created. The previous one no longer works.'
+                    : 'Link created. Copy it and send it to the practice.');
+            }
+            redirect(url('practice', ['id' => $id]));
+        }
+
         // ---- Archive: restore and permanent delete ---------------------
         case 'practice-restore': {
             $id = (int) ($_POST['id'] ?? 0);
@@ -1157,7 +1202,10 @@ if ($method === 'POST') {
 
 // Reading the portal now needs an account. The login page and the
 // sign-out link are the only exceptions.
-if (!in_array($route, ['login', 'logout'], true)) {
+// The shared practice page is opened with a link and no account, so it
+// is the one read route outside the sign-in wall. The token is the
+// credential; everything it can reach is one practice, read only.
+if (!in_array($route, ['login', 'logout', 'share'], true)) {
     Auth::requireLogin();
 }
 
@@ -1227,6 +1275,37 @@ switch ($route) {
         break;
     }
 
+    case 'share': {
+        $practice = Repo::practiceByShareToken((string) ($_GET['t'] ?? ''));
+        if (!$practice) {
+            http_response_code(404);
+            render('error', [
+                'title'   => 'This link is not valid',
+                'message' => 'It may have been replaced or turned off. Ask your onboarding contact for a new one.',
+            ]);
+            exit;
+        }
+
+        $pid  = (int) $practice['id'];
+        $rows = Repo::practiceTasks($pid, ['show_completed' => true]);
+        $byProduct = [];
+        foreach (Repo::groupTasks($rows) as $gid => $g) {
+            $byProduct[$gid] = [
+                'product_id'   => $g['product_id'],
+                'product_name' => $g['product_name'],
+                'rollup'       => Repo::rollup($g['tasks']),
+            ];
+        }
+
+        render('share', [
+            'practice'   => $practice,
+            'grouped'    => Repo::groupTasks($rows),
+            'rollup'     => Repo::rollup($rows),
+            'by_product' => $byProduct,
+        ]);
+        break;
+    }
+
     case 'practices': {
         $f = read_filters();
         if (!Auth::isAdmin()) {
@@ -1273,6 +1352,7 @@ switch ($route) {
             'rollup'      => Repo::rollup($allRows),
             'by_product'  => $byProduct,
             'by_category' => Repo::rollupByCategory($allRows),
+            'all_rows'    => $allRows,
             'filters'     => $f,
             'filtered'    => count($filteredRows) !== count($allRows),
             'hiding_done' => empty($f['show_completed']),
@@ -1353,12 +1433,12 @@ switch ($route) {
     }
 
     case 'admin/products':
-        Auth::requireAdmin();
+        Auth::requireCan('manage_catalogue');
         render('admin/products', ['rows' => Repo::products(false)]);
         break;
 
     case 'admin/categories':
-        Auth::requireAdmin();
+        Auth::requireCan('manage_catalogue');
         render('admin/categories', ['rows' => Repo::categories(false)]);
         break;
 
@@ -1403,7 +1483,7 @@ switch ($route) {
         break;
 
     case 'admin/activity': {
-        Auth::requireAdmin();
+        Auth::requireCan('view_activity');
         $rows = Database::all(
             'SELECT l.*, pr.name AS practice_name, t.name AS task_name
                FROM activity_log l

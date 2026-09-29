@@ -7,6 +7,7 @@
  * @var array $rollup       totals across ALL tasks (unfiltered)
  * @var array $by_product
  * @var array $by_category
+ * @var array $all_rows    every task on this practice, unfiltered
  * @var array $filters
  * @var bool  $filtered
  * @var bool  $hiding_done
@@ -86,12 +87,76 @@ $days        = days_until($practice['target_go_live_date'] ?? null);
   </div>
 </section>
 
+<?php
+  // Everything below is computed from $allRows, the unfiltered task
+  // list already loaded for the progress figures, so the overview costs
+  // no extra queries and cannot disagree with the numbers above it.
+  $openRows = array_values(array_filter(
+      $all_rows,
+      static fn($r) => !in_array($r['status'], ['completed', 'not_applicable'], true)
+  ));
+
+  $byPerson = [];
+  foreach ($openRows as $r) {
+      $key = $r['assignee_name'] ?: 'Unassigned';
+      if (!isset($byPerson[$key])) {
+          $byPerson[$key] = ['label' => $key, 'open_count' => 0, 'blocked' => 0, 'overdue' => 0];
+      }
+      $byPerson[$key]['open_count']++;
+      if ($r['status'] === 'blocked')  { $byPerson[$key]['blocked']++; }
+      if (!empty($r['is_overdue']))    { $byPerson[$key]['overdue']++; }
+  }
+  uasort($byPerson, static fn($a, $b) => $b['open_count'] <=> $a['open_count']);
+
+  $openByStage = [];
+  foreach ($openRows as $r) {
+      $cid = (int) $r['category_id'];
+      if (!isset($openByStage[$cid])) {
+          $openByStage[$cid] = [
+              'label' => $r['category_name'], 'value' => 0,
+              'color' => $r['category_color'] ?? null, 'sort' => (int) $r['category_sort'],
+          ];
+      }
+      $openByStage[$cid]['value']++;
+  }
+  uasort($openByStage, static fn($a, $b) => $a['sort'] <=> $b['sort']);
+?>
+
+<h2 class="section-h">Where this practice stands</h2>
+
 <div class="split">
-  <section class="card" aria-labelledby="bp-h">
-    <h2 id="bp-h" class="card-h">Progress by product</h2>
+  <section class="card">
+    <h2 class="card-h">Task status</h2>
+    <?php
+      $palette = [
+        'not_started' => '#CBD5E1', 'in_progress' => '#0284C7', 'waiting' => '#E0A458',
+        'blocked' => '#BE123C', 'completed' => '#3E8E5C', 'not_applicable' => '#E2E8F0',
+      ];
+      $counts = [];
+      foreach ($all_rows as $r) {
+          $counts[$r['status']] = ($counts[$r['status']] ?? 0) + 1;
+      }
+      $donut_rows = [];
+      foreach (STATUSES as $k => $label) {
+          $donut_rows[] = [
+            'label' => $label,
+            'value' => (int) ($counts[$k] ?? 0),
+            'color' => $palette[$k],
+            'href'  => url('practice', ['id' => $practice_id, 'status' => $k]),
+          ];
+      }
+      $donut_centre = (string) count($all_rows);
+      $donut_sub    = 'tasks';
+      $donut_empty  = 'No tasks yet. Choose this practice\'s products to generate them.';
+      require APP_ROOT . '/templates/partials/donut.php';
+    ?>
+  </section>
+
+  <section class="card">
+    <h2 class="card-h">Progress by product</h2>
     <?php if (!$by_product): ?>
       <p class="muted">
-        No products are selected for this practice yet<?= $is_admin ? ', so it has no tasks.' : '.' ?>
+        No products are selected for this practice yet<?= $can_practices ? ', so it has no tasks.' : '.' ?>
       </p>
     <?php else: ?>
       <ul class="mini-list">
@@ -113,24 +178,30 @@ $days        = days_until($practice['target_go_live_date'] ?? null);
       </ul>
     <?php endif; ?>
   </section>
+</div>
 
-  <section class="card" aria-labelledby="bc-h">
-    <h2 id="bc-h" class="card-h">Progress by category</h2>
-    <?php if (!$by_category): ?>
-      <p class="muted">Nothing to show yet.</p>
-    <?php else: ?>
-      <ul class="mini-list">
-        <?php foreach ($by_category as $bc): ?>
-          <li>
-            <div class="mini-row">
-              <span class="mini-name"><?= e($bc['name']) ?></span>
-              <span class="mini-meta"><?= (int) $bc['completed'] ?>/<?= (int) $bc['countable'] ?></span>
-            </div>
-            <?php $pct = (int) $bc['progress']; $bar_size = 'sm'; require APP_ROOT . '/templates/partials/progress.php'; ?>
-          </li>
-        <?php endforeach; ?>
-      </ul>
-    <?php endif; ?>
+<div class="split">
+  <section class="card">
+    <h2 class="card-h">Open work by stage</h2>
+    <?php
+      $col_rows = array_map(static fn($c) => [
+        'label' => $c['label'], 'value' => $c['value'], 'color' => $c['color'],
+        'href'  => url('practice', ['id' => $practice_id, 'category_id' => null]),
+      ], array_values($openByStage));
+      $col_empty = 'Nothing outstanding here.';
+      require APP_ROOT . '/templates/partials/columns.php';
+    ?>
+    <p class="table-note">Stages run left to right. A tall column early on is where this practice is stuck.</p>
+  </section>
+
+  <section class="card">
+    <h2 class="card-h">Who is carrying the work here</h2>
+    <?php
+      $chart_rows  = array_values($byPerson);
+      $chart_empty = 'Nothing outstanding on this practice.';
+      require APP_ROOT . '/templates/partials/bar_chart.php';
+    ?>
+    <p class="table-note">Open tasks only. Anything unassigned is worth handing out.</p>
   </section>
 </div>
 
@@ -279,6 +350,58 @@ require APP_ROOT . '/templates/partials/filter_bar.php';
   <?php endif; ?>
 </form>
 
+<?php endif; ?>
+
+<?php if ($can_practices): ?>
+  <section class="card share-card-admin">
+    <h2 class="card-h">Share with the practice</h2>
+    <?php if (empty($practice['share_token'])): ?>
+      <p class="muted">
+        Create a link the practice can open without an account. It shows their progress and
+        outstanding steps, and nothing else: no internal notes, no other practices, and no
+        indication of who on our side holds each task.
+      </p>
+      <form method="post" action="<?= e(url('practice-share')) ?>">
+        <?= Csrf::field() ?>
+        <input type="hidden" name="id" value="<?= $practice_id ?>">
+        <input type="hidden" name="do" value="create">
+        <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">Create link</button></div>
+      </form>
+    <?php else: ?>
+      <?php
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $base   = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? '')
+                . rtrim(dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '')), '/\\') . '/';
+        $shareUrl = $base . url('share', ['t' => $practice['share_token']]);
+      ?>
+      <div class="share-link">
+        <input type="text" readonly value="<?= e($shareUrl) ?>" id="share-url"
+               onclick="this.select()" aria-label="Shareable link for <?= e($practice['name']) ?>">
+        <button type="button" class="btn btn-primary btn-sm" data-copy="#share-url">Copy</button>
+        <a class="btn btn-quiet btn-sm" href="<?= e($shareUrl) ?>" target="_blank" rel="noopener">Preview</a>
+      </div>
+      <p class="table-note">
+        Anyone with this link can see it, so treat it as you would a shared document.
+        Created <?= e(fmt_ago($practice['share_created_at'])) ?>.
+      </p>
+      <div class="form-actions">
+        <form method="post" action="<?= e(url('practice-share')) ?>" class="inline-form"
+              data-confirm="Create a new link? The one you have already sent will stop working.">
+          <?= Csrf::field() ?>
+          <input type="hidden" name="id" value="<?= $practice_id ?>">
+          <input type="hidden" name="do" value="replace">
+          <button type="submit" class="btn btn-quiet btn-sm">Replace link</button>
+        </form>
+        <form method="post" action="<?= e(url('practice-share')) ?>" class="inline-form"
+              data-confirm="Turn the link off? Anyone holding it will see a not-valid message.">
+          <?= Csrf::field() ?>
+          <input type="hidden" name="id" value="<?= $practice_id ?>">
+          <input type="hidden" name="do" value="revoke">
+          <button type="submit" class="btn btn-danger btn-sm">Turn off</button>
+        </form>
+      </div>
+    <?php endif; ?>
+  </section>
 <?php endif; ?>
 
 <div class="split">

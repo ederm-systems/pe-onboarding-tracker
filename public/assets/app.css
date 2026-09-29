@@ -1038,6 +1038,11 @@ table.grid tbody tr.is-dirty:hover > td { background: #FDF1DC; }
 .auth-page .topbar,
 .auth-page .foot { display: none; }
 .auth-page .wrap { max-width: none; padding: 0; }
+
+/* The practice's own page keeps a page background and normal padding,
+   unlike the sign-in page which fills the screen. */
+.share-page { background: var(--bg); }
+.share-page .wrap { max-width: 52rem; padding: 2rem 1.25rem 3rem; margin: 0 auto; }
 .auth-page {
   min-height: 100vh;
   background:
@@ -1108,3 +1113,75 @@ table.grid tbody tr.is-dirty:hover > td { background: #FDF1DC; }
 }
 
 @media (prefers-reduced-motion: reduce) { .auth-card { animation: none; } }
+
+
+/* ---------- The shareable link, on the practice page ---------- */
+
+.share-card-admin { border-left: 3px solid var(--accent); }
+.share-link { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .25rem 0 .5rem; }
+.share-link input {
+  flex: 1 1 18rem; min-width: 0; font-size: .8125rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--surface-2);
+}
+
+/* ==========================================================
+   The practice's own page, opened with a link
+   ========================================================== */
+
+.share { max-width: 46rem; margin: 0 auto; padding: 1rem 0 3rem; }
+
+.share-head { margin-bottom: 1.5rem; }
+.share-brand { display: flex; align-items: center; gap: .55rem; margin-bottom: 1.25rem; }
+.share-head h1 { font-size: 1.75rem; letter-spacing: -.025em; }
+.share-sub { color: var(--ink-3); font-size: .9375rem; margin: .35rem 0 0; }
+
+.share-hero {
+  display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+  background: var(--surface); border-radius: var(--radius);
+  padding: 1.5rem 1.75rem; box-shadow: var(--shadow); margin-bottom: 1.25rem;
+}
+.share-gauge { position: relative; width: 6.5rem; height: 6.5rem; flex: none; }
+.share-gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.share-gauge .gauge-track { stroke: var(--surface-3); stroke-width: 4; fill: none; }
+.share-gauge .gauge-fill  { stroke: var(--accent); stroke-width: 4; fill: none; stroke-linecap: round; }
+.share-gauge-num {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 1.375rem; font-weight: 700; letter-spacing: -.02em;
+}
+.share-hero-text { flex: 1 1 14rem; min-width: 0; }
+.share-big { font-size: 1.125rem; font-weight: 600; margin: 0 0 .35rem; letter-spacing: -.014em; }
+.share-note { color: var(--ink-2); font-size: .9375rem; margin: 0; }
+
+.share-card {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 1.35rem 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.25rem;
+}
+.share-card > h2 {
+  font-size: 1rem; margin-bottom: .9rem;
+  display: flex; align-items: center; gap: .45rem;
+}
+.share-cat {
+  font-size: .75rem; font-weight: 600; color: var(--ink-3);
+  margin: 1.1rem 0 .4rem; letter-spacing: .02em; text-transform: uppercase;
+}
+.share-card > h3:first-of-type { margin-top: 0; }
+
+.share-tasks { list-style: none; margin: 0; padding: 0; }
+.share-tasks li {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .55rem 0; border-bottom: 1px solid var(--line); font-size: .9375rem;
+}
+.share-tasks li:last-child { border-bottom: 0; }
+.share-tasks li.is-done .share-task-name { color: var(--ink-3); }
+.share-task-name { min-width: 0; }
+.share-task-meta { display: flex; align-items: center; gap: .6rem; flex: none; white-space: nowrap; }
+
+.share-foot {
+  color: var(--ink-4); font-size: .8125rem; text-align: center; margin: 1.5rem 0 0;
+}
+
+@media (max-width: 560px) {
+  .share-hero { padding: 1.25rem; gap: 1rem; }
+  .share-tasks li { flex-direction: column; align-items: flex-start; gap: .3rem; }
+}

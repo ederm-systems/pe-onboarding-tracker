@@ -99,11 +99,16 @@ CREATE TABLE IF NOT EXISTS practices (
   onboarding_state    ENUM('active','on_hold','completed') NOT NULL DEFAULT 'active',
   target_go_live_date DATE DEFAULT NULL,
   notes               TEXT DEFAULT NULL,
+  -- A long random token, not the id, because the link is the only
+  -- credential a practice representative has. Null means no link.
+  share_token         CHAR(32) DEFAULT NULL,
+  share_created_at    DATETIME DEFAULT NULL,
   is_archived         TINYINT(1) NOT NULL DEFAULT 0,
   created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_practices_slug (slug),
+  UNIQUE KEY uq_practices_share_token (share_token),
   KEY ix_practices_state (onboarding_state, is_archived),
   KEY ix_practices_golive (target_go_live_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

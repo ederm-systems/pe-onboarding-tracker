@@ -172,6 +172,23 @@ final class Repo
         return Database::one('SELECT * FROM practices WHERE id = :id', ['id' => $id]);
     }
 
+    /**
+     * Find a practice by its share token.
+     *
+     * Archived practices are excluded, so archiving a practice also
+     * quietly retires its link.
+     */
+    public static function practiceByShareToken(string $token): ?array
+    {
+        if (!preg_match('/^[a-f0-9]{32}$/', $token)) {
+            return null;
+        }
+        return Database::one(
+            'SELECT * FROM practices WHERE share_token = :t AND is_archived = 0',
+            ['t' => $token]
+        );
+    }
+
     public static function practicesSimple(bool $includeArchived = false): array
     {
         $where = $includeArchived ? '' : 'WHERE is_archived = 0';
